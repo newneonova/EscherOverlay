@@ -1,0 +1,2165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Mark Escher Builder</title>
+    
+  <!-- These are not generally used within the notebook. -->
+  <script src="RequiredFiles/escher/lib/jquery-2.1.0.min.js"></script>
+  <script src="RequiredFiles/escher/lib/bootstrap-3.1.1.min.js"></script>
+
+
+  <link rel="stylesheet" href="RequiredFiles/escher/lib/bootstrap-3.1.1.min.css"/>
+  <link rel="stylesheet" href="RequiredFiles/escher/css/builder-1.2.0.css"/>
+
+
+    <!-- Require only loaded in standalone file. -->
+    <script src="RequiredFiles/escher/lib/require.min.js"></script>
+
+    <link rel="shortcut icon" href="RequiredFiles/escher/resources/favicon.ico" />
+
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, height=device-height,
+                                   initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui"/>
+  </head>
+  
+   <style>
+   #structures-buttons {
+     position: absolute;
+     bottom: 5px;
+     left: 5px;
+   }
+
+   #table-wrapper {
+     position: absolute;
+     top: 20px;
+     right: 20px;
+   }
+   
+     #Options {
+     position: absolute;
+     top: 20px;
+     left: 50px;
+	 background-color: rgba(255, 255, 255, 0.95);
+	 display: block;
+	 border:2px solid red;
+   }
+   
+   #Colors {
+     position: absolute;
+     top: 100px;
+     left: 50px;
+	 background-color: rgba(255, 255, 255, 0.95);
+	 display: block;
+	 border:2px solid green;
+   }
+</style>
+<style id="HighID">
+   .Highlight {
+     
+   }
+  </style>
+
+
+  
+  
+  <body>
+    
+<div style="height: 100%; width: 100%;" id="static" ></div>
+  
+
+
+ 
+<div id="map_container">	 </div>
+
+
+
+ 
+ 
+ <div id='HeatmapPanel' style=" background-color:#bfbfbf; visibility:hidden; position:fixed;">
+ <input type="file" id="file" />
+ 
+ <button onclick='CloseHeatOptions()'> Close Options</button>
+ <button type="button" onclick="SetSize()">Set cell size</button>
+ <button type="button" onclick="OpenColorScale()" id="Confirm">Change color scale</button>
+  <input type="checkbox" id="ShowRows" onclick='DrawHeatMap()'> Hide row labels<br>
+   <input type="checkbox" id="ShowColumns" onclick='DrawHeatMap()'> Hide column labels<br>
+   <button type="button" onclick="AddToCurrent()" id="AddToHeat" disabled>Add row to current heatmap</button>
+      <button type="button" onclick="ResetHeat()" id="RemFromHeat">Reset all Heatmaps</button>
+  <div id='ColorMenu' style="visibility:hidden; position:fixed;">
+ 
+  <button onclick='AddPole()'>Add Color Pole</button>
+  
+ <button onclick='CloseColor()'> Close Color Changer</button>
+ <canvas id='slide' width=600px height=200px></canvas>
+   <div id="ColorPicker" style='visibility:hidden;'/>
+    <canvas id='Picker' width=350px height=200px/>
+  </div>
+ </div>
+ </div>
+ 
+ <div id='OtherOptionPanel' style=" background-color:#bfbfbf; visibility:hidden; position:fixed;">
+ <button onclick='ChangeName()'>Change map name</button>
+  <button onclick='ColorMetabolites()'>Color metabolites by compartment</button>
+   <button onclick='MakeLookRobotSelected()'>Make selected reactions look angular</button>
+      <button onclick='ChangeReactionFontSize()'>Change selected reaction label font size</button>
+   <button onclick='CloseOther()'>Close options</button>
+ </div>
+ 
+ <div id='CompColorPanel'style=" background-color:#bfbfbf; visibility:hidden; position:fixed;">
+    <button onclick='CloseColors()'>Confirm color choices</button>
+	<button onclick='DefaultColors()'>Return to default colors</button>
+	 <div id="ColorPickerTwo" style='visibility:hidden;'/>
+    <canvas id='Pickertwo' width=0px height=0x/>
+  </div>
+ </div>
+ 
+ <canvas id='Key' width=50px height=150px style='position:fixed;bottom:0;right:0;'></canvas>
+ 
+
+
+
+<!-- btn btn-default btn-md-->
+
+    <div id="structures-buttons">
+
+      <a class="btn btn-default btn-md" onclick="OpenProteinHeatmapOptions()" id="MetButton">
+        Add protein heatmaps
+      </a>
+	     <a class="btn btn-default btn-md" onclick="RemoveMaps()" id="MetButton">
+        Remove all heatmaps
+      </a>
+	  	     <a class="btn btn-default btn-md" onclick="OpenOtherOptions()" >
+        Open other options
+      </a>
+
+
+  </div>
+  
+  
+<script>
+
+
+
+
+function MapLoaded(){
+
+console.log('LOADED');
+//Trying to add code which detects when a new map has been loaded. and refreshes all variables accordingly
+BobTheBuilder.constructor = (function(){
+
+var cached_function = BobTheBuilder.constructor;
+return function(){
+console.log('map loaded');
+var results = cached_function.apply(this, arguments);
+return results;
+};
+
+
+})();
+
+}
+
+
+function ChangeReactionFontSize(){
+var fontsize= prompt('Set font size for selected reactions','30px');
+
+if (fontsize.indexOf('px')==-1){
+fontsize=fontsize+'px';
+}
+var NODEHTML=document.getElementsByClassName('node selected');
+var REACTIONID=[];
+
+
+for (var n=0; n<NODEHTML.length; n++){
+
+var ID = NODEHTML[n].id.substring(1);
+var NODE = BobTheBuilder.map.nodes[ID];
+for(k=0;k<NODE.connected_segments.length;k++){
+if (REACTIONID.indexOf(NODE.connected_segments[k].reaction_id)==-1){
+REACTIONID.push(NODE.connected_segments[k].reaction_id);
+}}}
+
+for(var n=0;n<REACTIONID.length;n++){
+var Rhtml=document.getElementById('r'+REACTIONID[n]);
+var OldClass=Rhtml.childNodes[0].childNodes[1].getAttribute('class').split('ReacFont_')[0];
+Rhtml.childNodes[0].childNodes[1].setAttribute('class',OldClass+' ReacFont_'+fontsize)
+}
+
+
+var PARENT=document.getElementsByTagName('defs')[0];
+var OldStyle=document.getElementById('FONTS');
+
+
+if(OldStyle==null){
+var OldStyle=document.createElement("style");
+OldStyle.id='FONTS';
+}
+
+
+var StyleString='';
+
+StyleString=StyleString+'svg.escher-svg .ReacFont_'+fontsize+'{font-size:'+fontsize+';} ';
+
+OldStyle.innerHTML=OldStyle.innerHTML+StyleString;
+PARENT.appendChild(OldStyle);
+
+
+
+}
+
+
+
+function MakeLookRobotSelected(){
+
+
+var NODEHTML=document.getElementsByClassName('node selected');
+var NODES=[];
+var REACTIONID=[];
+var NODEID=[];
+
+
+for (var n=0; n<NODEHTML.length; n++){
+
+var ID = NODEHTML[n].id.substring(1);
+NODEID.push(ID);
+var NODE = BobTheBuilder.map.nodes[ID];
+NODES.push(NODE);
+for(k=0;k<NODE.connected_segments.length;k++){
+if (REACTIONID.indexOf(NODE.connected_segments[k].reaction_id)==-1){
+REACTIONID.push(NODE.connected_segments[k].reaction_id);
+}}}
+var REACTIONS=[];
+for(k=0;k<REACTIONID.length;k++){
+REACTIONS.push(BobTheBuilder.map.reactions[REACTIONID[k]]);
+}
+//console.log(NODES,REACTIONID,REACTIONS)
+
+for(var i=0; i<REACTIONS.length;i++){
+ var S=REACTIONS[i].segments;
+var Skeys=Object.keys(S);
+for(var j=0;j<Skeys.length;j++){
+ CurrentSeg=S[Skeys[j]];
+ 
+var FromID=NODEID.indexOf(CurrentSeg.from_node_id);
+var ToID=NODEID.indexOf(CurrentSeg.to_node_id);
+ var FnodePos=[BobTheBuilder.map.nodes[CurrentSeg.from_node_id].x,BobTheBuilder.map.nodes[CurrentSeg.from_node_id].y];
+ var ToNodePos=[BobTheBuilder.map.nodes[CurrentSeg.to_node_id].x,BobTheBuilder.map.nodes[CurrentSeg.to_node_id].y];
+ var Xdist=FnodePos[0]-ToNodePos[0];
+var Ydist=FnodePos[1]-ToNodePos[1];
+ var DIST=Math.sqrt(Xdist*Xdist +Ydist*Ydist);
+ //b1 is from, b2 is to?
+ if(FromID!=-1){ //make bevil dist 20 from fromnode point at tonode
+if(CurrentSeg.b1!=null){
+CurrentSeg.b1.x=FnodePos[0]-(40*Xdist)/DIST;
+CurrentSeg.b1.y=FnodePos[1]-(40*Ydist)/DIST;
+}
+ 
+ }
+ 
+  if(ToID!=-1){ //make bevil dist 20 from tonode point at fromnode
+ if(CurrentSeg.b2!=null){
+CurrentSeg.b2.x=ToNodePos[0]+(40*Xdist)/DIST;
+CurrentSeg.b2.y=ToNodePos[1]+(40*Ydist)/DIST;
+}
+ }
+
+}
+
+
+}
+
+//Go through reactions, go through segments, go through bevils, if the bevil is associated with a node in NODES then make it pretty. else leave it alone.
+
+//get highlighted nodes
+
+
+//figure out which reaction each node belongs to
+
+//First pass, make bevils point straight at targets
+
+
+BobTheBuilder.map.draw_all_reactions();
+
+}
+
+
+
+
+
+function ColorSegments(){
+//var Segs=document.getElementsByClassName('segment');
+
+var MapReactions=BobTheBuilder.map['reactions'];
+var RKeys=Object.keys(MapReactions);
+
+
+for (var i=0;i<RKeys.length;i++){
+ Reaction=MapReactions[RKeys[i]];
+
+var Segs=Reaction['segments'];
+var Skeys=Object.keys(Segs);
+for(var j=0;j<Skeys.length;j++){
+
+ var Segment=Segs[Skeys[j]];
+ var SID='s'+Segment['segment_id'];
+var N1=document.getElementById('n'+Segment['to_node_id']).childNodes[0].getAttribute('class');
+var N2=document.getElementById('n'+Segment['from_node_id']).childNodes[0].getAttribute('class');
+if(Reaction['reaction_id']=="100000"){
+
+}
+PP=document.getElementById('n'+Segment['to_node_id']);
+var NewClass=''
+if(N1.indexOf('Cat_')!=-1){
+NewClass=N1[N1.indexOf('Cat_')+4];
+
+}
+else if (N2.indexOf('Cat_')!=-1){
+NewClass=N2[N2.indexOf('Cat_')+4];
+}
+
+var ChangeMent=document.getElementById(SID).childNodes[0];
+var ChangeArrow=document.getElementById(SID).childNodes[1].childNodes[0];
+
+var OC=ChangeMent.getAttribute('class');
+
+if(OC.indexOf('Cat_')==-1){
+ChangeMent.setAttribute('class',OC+" Cat_"+NewClass);
+if(typeof(ChangeArrow)!=='undefined'){
+var OD=ChangeArrow.getAttribute('class');
+ChangeArrow.setAttribute('class',OD+" Cat_"+NewClass);
+}
+}
+
+
+}
+
+}
+}
+
+function ColorMetabolites(){
+
+
+
+CloseOther();
+CompColorPanel.style.visibility='visible';
+
+//first parse description for possible compartment associate array
+
+try{ CompColor=JSON.parse(PossibleStorageString=BobTheBuilder.map['map_description'].split('____****____')[0]);
+}
+
+catch (e) {
+CompColor={};
+BobTheBuilder.map['map_description']='____****____'+BobTheBuilder.map['map_description'];
+}
+
+
+var MapNodes=BobTheBuilder.map['nodes'];
+var MapNodesNames=Object.keys(MapNodes);
+ CatagoryType=[];
+for(var i=0;i<MapNodesNames.length;i++){
+
+if (MapNodes[MapNodesNames[i]]['node_type']=='metabolite'){
+
+ID=MapNodes[MapNodesNames[i]]['bigg_id'];
+Cat=ID.substr(ID.length-1);
+if(CatagoryType.indexOf(Cat)==-1){
+CatagoryType.push(Cat);
+}
+var N=document.getElementById('n'+MapNodesNames[i]);
+var P=N.getElementsByClassName('node-circle')[0];
+OldClass=P.getAttribute('class');
+OldClass=OldClass.replace(' Cat_'+Cat,'');
+P.setAttribute('class',OldClass+' Cat_'+Cat);
+
+
+}}
+for(var i=0;i<CatagoryType.length;i++){
+if(typeof(CompColor[CatagoryType[i]])==='undefined'){
+CompColor[CatagoryType[i]]=rgbToHex(224, 134, 91);
+}
+}
+
+
+for (var key in CompColor) {
+ if(document.getElementById('Comp_'+key)===null){
+ var B=document.createElement('button');
+ B.setAttribute('onclick','ChangeColor(this)');
+ B.setAttribute('style','background-color:'+CompColor[key]+';');
+ B.id='Comp_'+key;
+ B.textContent=key;
+ CompColorPanel.appendChild(B);
+ }
+}
+//add button to save the new associated array to the description and color the nodes appropriately.
+
+
+
+//Maybe also color segments???
+
+//if segment touches a C node, in C compartment, change class of the "segment-group"  to Cat_C etc
+
+ColorSegments();
+
+
+}
+
+
+function   ClosePickerTwo(Something,CColor){
+CompColor[Something.id.split('Comp_')[1]]=CColor;
+Something.setAttribute('style','background-color:'+CompColor[Something.id.split('Comp_')[1]]+';');
+ColorPickerTwo.style.visibility='hidden';
+
+
+
+
+Pickertwo.width=0;
+Pickertwo.height=0;
+if(typeof PMDT !== 'undefined'){
+Pickertwo.removeEventListener('mousedown', PMDT);
+Pickertwo.removeEventListener('mousemove', PMMT);
+Pickertwo.removeEventListener('mouseleave', PMLT);
+Pickertwo.removeEventListener('mouseup', PMUT);
+}
+}
+
+
+function DefaultColors(){
+OtherOptionPanel.style.visibility='visible';
+CompColorPanel.style.visibility='hidden';
+OldDesc=BobTheBuilder.map['map_description'].split('____****____')[1];
+BobTheBuilder.map['map_description']='____****____'+OldDesc;
+var PARENT=document.getElementsByTagName('defs')[0];
+var OldStyle=document.getElementById('COLOR');
+if(OldStyle!=null){
+PARENT.removeChild(OldStyle);
+}
+for(var i=0;i<CatagoryType.length;i++){
+
+CompColor[CatagoryType[i]]=rgbToHex(224, 134, 91);
+document.getElementById('Comp_'+CatagoryType[i]).setAttribute('style','background-color:'+CompColor[CatagoryType[i]]+';');
+}
+
+}
+
+
+function CloseColors(){
+OtherOptionPanel.style.visibility='visible';
+CompColorPanel.style.visibility='hidden';
+
+
+var OldDesc=BobTheBuilder.map['map_description'].split('____****____')[1];
+BobTheBuilder.map['map_description']=JSON.stringify(CompColor)+'____****____'+OldDesc;
+
+
+var PARENT=document.getElementsByTagName('defs')[0];
+var OldStyle=document.getElementById('COLOR');
+
+
+if(OldStyle!=null){
+PARENT.removeChild(OldStyle);
+}
+var OldStyle=document.createElement("style");
+OldStyle.id='COLOR';
+
+var StyleString='';
+for (var key in CompColor) {
+StyleString=StyleString+'svg.escher-svg .node-circle.Cat_'+key+' { fill:'+CompColor[key]+';}svg.escher-svg .segment-group .Cat_'+key+' { stroke:'+CompColor[key]+';}svg.escher-svg .segment-group .arrowhead.Cat_'+key+' { stroke:'+CompColor[key]+'; fill:'+CompColor[key]+';}';
+}
+OldStyle.innerHTML=StyleString
+PARENT.appendChild(OldStyle);
+
+/*VV=$('.Cat_'+CatagoryID);
+   for(var p=0;p<VV.length;p++){
+   VV[p].setAttribute('style','fill:'+Color)
+
+   }*/
+ //COLORS[Index]=Color; 
+
+ 
+ //$('#'+CatagoryID)[0].setAttribute('style','background-color:'+COLORS[Index]); 
+ 
+ 
+ 
+}
+
+function ChangeColor(Something){
+//console.log(Something);
+ColorPickerTwo.style.visibility='visible';
+
+CColor=CompColor[Something.id.split('Comp_')[1]];
+Pcontext=Pickertwo.getContext('2d');
+Pickertwo.width=350;
+Pickertwo.height=200;
+Pcontext.fillStyle=rgbToHex(25,25,25);
+Pcontext.fillRect(0,0,Pcontext.canvas.width,Pcontext.canvas.height);
+
+//Thanks to http://seesparkbox.com/foundry/how_i_built_a_canvas_color_picker
+var gradient = Pcontext.createLinearGradient(5,5,Pickertwo.width-80,5);
+gradient.addColorStop(0,    "rgb(255,   0,   0)");
+gradient.addColorStop(0.15, "rgb(255,   0, 255)");
+gradient.addColorStop(0.33, "rgb(0,     0, 255)");
+gradient.addColorStop(0.49, "rgb(0,   255, 255)");
+gradient.addColorStop(0.67, "rgb(0,   255,   0)");
+gradient.addColorStop(0.84, "rgb(255, 255,   0)");
+gradient.addColorStop(1,    "rgb(255,   0,   0)");
+Pcontext.fillStyle=gradient;
+Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+ gradient = Pcontext.createLinearGradient(0, 5, 0, Pcontext.canvas.height-10);
+  gradient.addColorStop(0,   "rgba(255, 255, 255, 1)");
+  gradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
+  gradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
+  gradient.addColorStop(1,   "rgba(0,     0,   0, 1)");
+  Pcontext.fillStyle=gradient;
+Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+Pcontext.fillStyle=rgbToHex(210,210,210);
+Pcontext.fillRect(Pcontext.canvas.width-50,Pcontext.canvas.height-30,40,20);
+Pcontext.fillStyle=rgbToHex(0,0,0);
+Pcontext.font="8px sans-serif";
+Pcontext.fillText('Confirm',Pcontext.canvas.width-50+5,Pcontext.canvas.height-30+10);
+Pcontext.fillStyle=CColor;
+Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+
+
+gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+gradient.addColorStop(0,    "rgb(0,   0,   0)");
+gradient.addColorStop(.5,   CColor);
+
+gradient.addColorStop(1,    "rgb(255,   255,   255)");
+Pcontext.fillStyle=gradient;
+Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+
+
+PickDown=false;
+if(typeof PMDT !== 'undefined'){
+Pickertwo.removeEventListener('mousedown', PMDT);
+Pickertwo.removeEventListener('mousemove', PMMT);
+Pickertwo.removeEventListener('mouseleave', PMLT);
+Pickertwo.removeEventListener('mouseup', PMUT);
+}
+
+Pickertwo.addEventListener('mousedown', PMDT=function(evt) {
+PickDown=true;
+  var rect = Pickertwo.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+
+ if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+
+  var c = Pcontext.getImageData(x, y, 1, 1).data;
+
+  CColor=rgbToHex(c[0],c[1],c[2]);
+Pcontext.fillStyle=CColor;
+Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+
+
+  }
+  
+  if((x>Pcontext.canvas.width-50)&&(x<Pcontext.canvas.width-50+40)&&(y>Pcontext.canvas.height-30)&&(y<Pcontext.canvas.height-30+20)){
+  ClosePickerTwo(Something,CColor);
+
+  }
+
+  
+  });
+  Pickertwo.addEventListener('mousemove', PMMT=function(evt) {
+  if(PickDown==true){
+  var rect = Pickertwo.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+ if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+
+  var c = Pcontext.getImageData(x, y, 1, 1).data;
+
+
+ CColor=rgbToHex(c[0],c[1],c[2]);
+Pcontext.fillStyle=CColor;
+Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+
+  }
+  
+ 
+  
+  }
+  });
+  
+Pickertwo.addEventListener('mouseleave', PMLT=function(evt) {
+if(PickDown==true){
+	  var rect = Pickertwo.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+	PickDown=false;
+	  if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+
+  }
+  else if (x>Pcontext.canvas.width-60){
+  	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	
+gradient.addColorStop(0,    "rgb(0,   0,   0)");
+gradient.addColorStop(1,    "rgb(255,   255,   255)");
+Pcontext.fillStyle=gradient;
+Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+  
+  }
+  else{
+	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	  var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+
+	
+gradient.addColorStop(0,    "rgb(0,   0,   0)");
+gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+gradient.addColorStop(1,    "rgb(255,   255,   255)");
+Pcontext.fillStyle=gradient;
+Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+	}}});
+
+  
+Pickertwo.addEventListener('mouseup', PMUT=function(evt) {
+	  var rect = Pickertwo.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+	PickDown=false;
+	  if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+
+  }
+  else if (x>Pcontext.canvas.width-60){
+  	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	
+gradient.addColorStop(0,    "rgb(0,   0,   0)");
+gradient.addColorStop(1,    "rgb(255,   255,   255)");
+Pcontext.fillStyle=gradient;
+Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+  
+  }
+  else{
+	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	  var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+
+	
+gradient.addColorStop(0,    "rgb(0,   0,   0)");
+gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+gradient.addColorStop(1,    "rgb(255,   255,   255)");
+Pcontext.fillStyle=gradient;
+Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+	}});
+  
+  
+}
+
+
+function OpenOtherOptions(){
+HeatmapPanel.style.visibility='hidden';
+if(OtherOptionPanel.style.visibility=='visible'){
+CloseOther();
+}
+else{
+CompColorPanel.style.visibility='hidden';
+OtherOptionPanel.style.visibility='visible';
+}
+}
+
+function CloseOther(){
+CompColorPanel.style.visibility='hidden';
+OtherOptionPanel.style.visibility='hidden';
+}
+
+
+function SetSize(){
+var Temp=prompt("set the cell size",GloCell);
+if(!isNaN(parseInt(Temp))){
+GloCell=parseInt(Temp);
+
+DrawHeatMap();
+}
+}
+GloCell=60;
+
+function OpenProteinHeatmapOptions(){
+DrawHeatMap();
+CloseOther();
+if(HeatmapPanel.style.visibility=='visible'){
+CloseHeatOptions();
+}
+else{
+HeatmapPanel.style.visibility='visible';
+}
+
+
+}
+function CloseHeatOptions(){
+CloseColor();
+HeatmapPanel.style.visibility='hidden';
+}
+
+function RemoveMaps(){
+CloseHeatOptions();
+$( ".Heatmap" ).remove();
+}
+
+ function ChangeName(){
+ var oldname=BobTheBuilder.map['map_name'];
+ var name=prompt("Input new map name",oldname);
+ if (name!=null){
+ BobTheBuilder.map['map_name']=name;
+ }
+ }
+
+
+
+
+function componentToHex(c) {
+    var hex = c.toString(16);
+    return hex.length == 1 ? "0" + hex : hex;
+}
+function rgbToHex(r, g, b) {
+    return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+	//Thanks to Tim Down at http://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+}
+
+
+
+
+
+
+ColLabels=0;
+RowNames=0;
+RowData=1;
+ColData=1;
+IsLog=false;
+StoredTable=[];
+DataTable=[];
+
+
+
+
+function OpenColorPicker(COLOR,PosX,PosY,WhichBar){
+//console.log('Opening Picker',WhichBar);
+if(PosX > slide.width-300){
+PosX=PosX-300;
+}
+ColorPicker.style.visibility='visible';
+//COLOR is an rgb array [r,g,b]
+
+
+Pcontext=Picker.getContext('2d');
+Picker.setAttribute('style',"position:absolute; left:"+PosX+"px; top:"+PosY+"px;");
+Picker.width=350;
+Picker.height=200;
+Pcontext.fillStyle=rgbToHex(25,25,25);
+Pcontext.fillRect(0,0,Pcontext.canvas.width,Pcontext.canvas.height);
+
+//Thanks to http://seesparkbox.com/foundry/how_i_built_a_canvas_color_picker
+var gradient = Pcontext.createLinearGradient(5,5,Picker.width-80,5);
+gradient.addColorStop(0,    "rgb(255,   0,   0)");
+gradient.addColorStop(0.15, "rgb(255,   0, 255)");
+gradient.addColorStop(0.33, "rgb(0,     0, 255)");
+gradient.addColorStop(0.49, "rgb(0,   255, 255)");
+gradient.addColorStop(0.67, "rgb(0,   255,   0)");
+gradient.addColorStop(0.84, "rgb(255, 255,   0)");
+gradient.addColorStop(1,    "rgb(255,   0,   0)");
+Pcontext.fillStyle=gradient;
+Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+ gradient = Pcontext.createLinearGradient(0, 5, 0, Pcontext.canvas.height-10);
+  gradient.addColorStop(0,   "rgba(255, 255, 255, 1)");
+  gradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
+  gradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
+  gradient.addColorStop(1,   "rgba(0,     0,   0, 1)");
+  Pcontext.fillStyle=gradient;
+Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+Pcontext.fillStyle=rgbToHex(210,210,210);
+Pcontext.fillRect(Pcontext.canvas.width-50,Pcontext.canvas.height-30,40,20);
+Pcontext.fillStyle=rgbToHex(0,0,0);
+Pcontext.font="8px sans-serif";
+Pcontext.fillText('Confirm',Pcontext.canvas.width-50+5,Pcontext.canvas.height-30+10);
+Pcontext.fillStyle=rgbToHex(COLOR[0],COLOR[1],COLOR[2]);
+Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+
+
+gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+gradient.addColorStop(0,    "rgb(0,   0,   0)");
+gradient.addColorStop(.5,   rgbToHex(COLOR[0],COLOR[1],COLOR[2]));
+
+gradient.addColorStop(1,    "rgb(255,   255,   255)");
+Pcontext.fillStyle=gradient;
+Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+
+
+PickDown=false;
+if(typeof PMD !== 'undefined'){
+Picker.removeEventListener('mousedown', PMD);
+Picker.removeEventListener('mousemove', PMM);
+Picker.removeEventListener('mouseleave', PML);
+Picker.removeEventListener('mouseup', PMU);
+}
+
+Picker.addEventListener('mousedown', PMD=function(evt) {
+PickDown=true;
+  var rect = Picker.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+
+ if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+
+  var c = Pcontext.getImageData(x, y, 1, 1).data;
+
+  COLOR[0]=c[0];
+  COLOR[1]=c[1];
+  COLOR[2]=c[2];
+Pcontext.fillStyle=rgbToHex(COLOR[0],COLOR[1],COLOR[2]);
+Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+
+
+  }
+  
+  if((x>Pcontext.canvas.width-50)&&(x<Pcontext.canvas.width-50+40)&&(y>Pcontext.canvas.height-30)&&(y<Pcontext.canvas.height-30+20)){
+  ClosePicker(WhichBar,COLOR);
+
+  }
+
+  
+  });
+  Picker.addEventListener('mousemove', PMM=function(evt) {
+  if(PickDown==true){
+  var rect = Picker.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+ if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+
+  var c = Pcontext.getImageData(x, y, 1, 1).data;
+
+
+  COLOR[0]=c[0];
+  COLOR[1]=c[1];
+  COLOR[2]=c[2];
+Pcontext.fillStyle=rgbToHex(COLOR[0],COLOR[1],COLOR[2]);
+Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+
+  }
+  
+ 
+  
+  }
+  });
+  
+Picker.addEventListener('mouseleave', PML=function(evt) {
+if(PickDown==true){
+	  var rect = Picker.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+	PickDown=false;
+	  if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+
+  }
+  else if (x>Pcontext.canvas.width-60){
+  	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	
+gradient.addColorStop(0,    "rgb(0,   0,   0)");
+gradient.addColorStop(1,    "rgb(255,   255,   255)");
+Pcontext.fillStyle=gradient;
+Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+  
+  }
+  else{
+	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	  var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+
+	
+gradient.addColorStop(0,    "rgb(0,   0,   0)");
+gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+gradient.addColorStop(1,    "rgb(255,   255,   255)");
+Pcontext.fillStyle=gradient;
+Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+	}}});
+
+  
+Picker.addEventListener('mouseup', PMU=function(evt) {
+	  var rect = Picker.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+	PickDown=false;
+	  if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+
+  }
+  else if (x>Pcontext.canvas.width-60){
+  	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	
+gradient.addColorStop(0,    "rgb(0,   0,   0)");
+gradient.addColorStop(1,    "rgb(255,   255,   255)");
+Pcontext.fillStyle=gradient;
+Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+  
+  }
+  else{
+	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	  var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+
+	
+gradient.addColorStop(0,    "rgb(0,   0,   0)");
+gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+gradient.addColorStop(1,    "rgb(255,   255,   255)");
+Pcontext.fillStyle=gradient;
+Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+	}});
+  
+
+
+
+
+ 
+}
+function ClosePicker(WhichBar,Cin){
+ColorPicker.style.visibility='hidden';
+//console.log('In Close Picker',WhichBar);
+
+  OurBar.polecolor[WhichBar][0]=parseInt(Cin[0]);
+ OurBar.polecolor[WhichBar][1]=parseInt(Cin[1]);
+  OurBar.polecolor[WhichBar][2]=parseInt(Cin[2]);
+  NoMore=false;
+  DrawCurrentBar(ColorContext);
+}
+NoMore=false;
+
+function CloseColor(){
+ColorMenu.style.visibility='hidden';
+}
+
+ColorContext=slide.getContext('2d');
+ColorContext.fillStyle=rgbToHex(255,255,255);
+ColorContext.fillRect(0,0,ColorContext.canvas.width,ColorContext.canvas.height);
+
+function OpenColorScale(){
+ColorOpen=true;
+ColorMenu.style.visibility='visible';
+slide.width=600;
+slide.height=200;
+ColorContext=slide.getContext('2d');
+ColorContext.fillStyle=rgbToHex(255,255,255);
+ColorContext.fillRect(0,0,ColorContext.canvas.width,ColorContext.canvas.height);
+DrawCurrentBar(ColorContext);
+
+
+if(typeof(SMD)!=='undefined'){
+slide.removeEventListener('mousedown',SMD);
+slide.removeEventListener('mousemove',SMM);
+slide.removeEventListener('mouseup',SMU);
+}
+
+slide.addEventListener('mousedown', SMD=function(evt) {
+if(!NoMore){
+  var rect = slide.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+ 
+  //Check if a kill box
+  for(var i=0; i<KillRect.length;i++){
+  var KR=KillRect[i];
+  if((x>KR[0]-2)&&(x<KR[0]+5+2)&&(y>KR[1]-2)&&(y<KR[1]+5+2)){
+  OurBar.DeletePole(KR[2]);
+  DrawCurrentBar(ColorContext);
+  return 0
+  }  
+  }
+  
+    //check if a color box
+  for(var i=0; i<ColorChooserRec.length;i++){
+    var KR=ColorChooserRec[i];
+  if((x>=KR[0]-2)&&(x<=KR[0]+10+2)&&(y>=KR[1]-2)&&(y<=KR[1]+10+2)){
+  var Cin=[OurBar.polecolor[KR[2]][0],OurBar.polecolor[KR[2]][1],OurBar.polecolor[KR[2]][2]];
+  
+  OpenColorPicker(Cin,evt.clientX,evt.clientY,KR[2]);
+  NoMore=true;
+
+  return 0
+  }  
+  }
+  
+
+  //check if a movable pole
+    for(var i=0; i<PollTracker.length;i++){
+    var KR=PollTracker[i];
+  if((x>=KR[0]-3)&&(x<=KR[0]+5+3)&&(y>=KR[1]-3)&&(y<=KR[1]+80+3)){
+  ClickedPole=KR[2];
+  OurBar.fixed[KR[2]]='p';
+  DrawCurrentBar(ColorContext);
+  return 0
+  }  
+  }
+  
+  for(var i=0; i<InputRect.length;i++){
+ 
+    var KR=InputRect[i];
+  if((x>=KR[0]-2)&&(x<=KR[0]+5+2)&&(y>=KR[1]-2)&&(y<=KR[1]+5+2)){
+  var Percent=OurBar.pole[KR[2]];
+  var Value=OurBar.polevalue[KR[2]];
+  var Cin=prompt("Enter a number for the value of this color pole. Or enter as a percent of total i.e. 50%",Value);
+  if(Cin.indexOf('%')!=-1){
+  OurBar.fixed[KR[2]]='p';
+  OurBar.pole[KR[2]]=parseFloat(Cin.split('%')[0]);
+  }
+  else{
+  OurBar.fixed[KR[2]]='v';
+  OurBar.polevalue[KR[2]]=parseFloat(Cin);
+  OurBar.pole[KR[2]]=(OurBar.polevalue[KR[2]]-OurBar.polevalue[0])/(OurBar.polevalue[1]-OurBar.polevalue[0])*100;
+  }
+  OurBar.UpdatePoles(OurBar.polevalue[0],OurBar.polevalue[1]);
+  DrawCurrentBar(ColorContext);
+  return 0
+  }  
+  }
+  
+  
+  }});
+  ClickedPole=-1;
+  
+  slide.addEventListener('mousemove', SMM= function(evt) {
+ // console.log(ClickedPole);
+if((ClickedPole>-1)){
+  var rect = slide.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+  if((x>50)&&(x<slide.width-50)){
+  XPercent = (x-50)/(slide.width-100);
+  OurBar.pole[ClickedPole]=XPercent*100;
+  
+  OurBar.polevalue[ClickedPole]=OurBar.min+OurBar.pole[ClickedPole]*(OurBar.max-OurBar.min)/100;
+  OurBar.UpdatePoles(OurBar.polevalue[0],OurBar.polevalue[1]);
+  DrawCurrentBar(ColorContext);
+  }
+}
+}
+);
+slide.addEventListener('mouseup', SMU=function(evt) {
+
+ClickedPole=-1;
+}
+
+);
+
+
+
+
+
+}
+
+function AddPole(){
+OurBar.AddPole();
+DrawCurrentBar(ColorContext);
+}
+
+function DrawCurrentBar(ctx){
+DrawHeatMap();
+if(ctx!=null){
+ColorChooserRec=[];
+PollTracker=[];
+KillRect=[];
+InputRect=[];
+  ctx.font="10px sans-serif";
+ctx.fillStyle=rgbToHex(255,255,255);
+ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
+var LeftX=50;
+var RightX=ctx.canvas.width-50;
+ctx.strokeStyle=rgbToHex(0,0,0);
+ctx.beginPath();
+ctx.moveTo(LeftX,100);
+ctx.lineTo(RightX,100);
+
+ctx.stroke();
+ctx.fillStyle=rgbToHex(25,25,25);
+ctx.fillRect(LeftX,60,5,80);
+ctx.fillRect(RightX,60,5,80);
+var BarRange=RightX-LeftX;
+for( var i=0;i<OurBar.pole.length;i++){
+var PerAlong=OurBar.pole[i]/100;
+var Xpos=LeftX+BarRange*PerAlong;
+ColorChooserRec.push([Xpos,30,i]);
+ctx.fillStyle=OurBar.GetColor(OurBar.polevalue[i]);
+ctx.fillRect(Xpos,30,10,10);
+ctx.fillStyle=rgbToHex(0,0,0);
+if(OurBar.fixed[i]=='p'){
+ctx.fillText(Math.round(OurBar.pole[i]*100)/100+'%',Xpos,59);
+}
+if(OurBar.fixed[i]=='v'){
+ctx.fillText(Math.round(OurBar.polevalue[i]*100)/100,Xpos,59);
+}
+
+if(i>1){ //These poles are special, lighter colored,tracked,have delete pole buttons
+ctx.fillStyle=rgbToHex(50,50,50);
+ctx.fillRect(Xpos,60,5,80);
+PollTracker.push([Xpos,60,i]);
+ctx.fillStyle=rgbToHex(0,0,0);
+ctx.fillRect(Xpos+10,60+80+10,5,5);
+ctx.font="8px sans-serif";
+ctx.fillText('Delete Pole',Xpos+5,60+80+5);
+KillRect.push([Xpos+10,60+80+10,i]);
+
+ctx.fillRect(Xpos+10,65,5,5);
+ctx.font="8px sans-serif";
+ctx.fillText('Input Value',Xpos+10,80);
+InputRect.push([Xpos+10,65,i]);
+
+
+}
+//Leftx is ColorBar.pole(0),Rightx = ColorBar.pole(1)
+}
+}
+
+//Now draw the spectrum on the bottom
+//each pixel is a step
+for(var i=0;i<BarRange;i++){
+var PsentAlong=i/BarRange;
+
+ 
+var Value=OurBar.polevalue[0]+(OurBar.polevalue[1]-OurBar.polevalue[0])*PsentAlong;
+ if(BinMe){
+ Value=MakeBin(Value);
+ }
+
+ ctx.strokeStyle=OurBar.GetColor(Value);
+ ctx.beginPath();
+ ctx.moveTo(LeftX+i,170);
+ ctx.lineTo(LeftX+i,200);
+ ctx.stroke();
+ if(i%10==0){
+ ctx.save();
+ ctx.translate(ctx.canvas.width , 0);
+ ctx.rotate(Math.PI/2);
+ ctx.font10+"px sans-serif";
+ ctx.fillText(Math.round(Value*100)/100,150,-LeftX-i+ctx.canvas.width);
+ ctx.restore();
+ //Rotate canvas, write Value, Rotate back
+ }
+ 
+
+}
+  ctx.save();
+ ctx.translate(ctx.canvas.width , 0);
+ ctx.rotate(Math.PI/2);
+ ctx.font10+"px sans-serif";
+ ctx.fillText(Math.round(Value*100)/100,150,-LeftX-i+ctx.canvas.width);
+ ctx.restore();
+}
+
+
+
+
+ColorBar=function(){
+this.max=100;
+this.min=0;
+this.fixed=['p','p'];
+//this.range=(Max-Min)||0;
+this.pole=[this.min,this.max]; //this holds the set of all pole values. value listed here is %
+this.polevalue=[0,100]; //numerical poll value, first is min, second is max, all others is specifc number
+this.polecolor=[[0,0,255],[255,0,0]]; //this holds the color value (r,g,b) of each pole. Indexes should line up. pollcolor[0] corrosponds to pole[0]
+};
+ColorBar.prototype.GetColor=function(value){
+//find the two poles this value lies between, or the pole it lies on. Return the color
+var CurrentBottom=0;
+var CurrentTop=1;
+for(var i=0; i<this.pole.length; i++){
+if(this.polevalue[i]==value){
+CurrentBottom=i;
+CurrentTop=i;
+break
+}
+if((this.polevalue[i]<value)&&(this.pole[i]>this.pole[CurrentBottom])){
+CurrentBottom=i;
+}
+if((this.polevalue[i]>value)&&(this.pole[i]<this.pole[CurrentTop])){
+CurrentTop=i;
+}
+
+}
+if(CurrentTop==CurrentBottom){
+return rgbToHex(this.polecolor[CurrentBottom][0],this.polecolor[CurrentBottom][1],this.polecolor[CurrentBottom][2]);
+}
+else{ 
+//know value is between this.pole[CurrentBottom] and this.pole[CurrentTop] 
+//know the color of this.polecolor[CurrentBottom] and this.polecolor[CurrentTop]
+var PercentAlong=(value-this.polevalue[CurrentBottom])/(this.polevalue[CurrentTop]-this.polevalue[CurrentBottom]);
+
+var RedDif=this.polecolor[CurrentTop][0]-this.polecolor[CurrentBottom][0];
+var GreenDif=this.polecolor[CurrentTop][1]-this.polecolor[CurrentBottom][1];
+var BlueDiff=this.polecolor[CurrentTop][2]-this.polecolor[CurrentBottom][2];
+var R = Math.floor(this.polecolor[CurrentBottom][0]+RedDif*PercentAlong);
+var G = Math.floor(this.polecolor[CurrentBottom][1]+GreenDif*PercentAlong);
+var B = Math.floor(this.polecolor[CurrentBottom][2]+BlueDiff*PercentAlong);
+//console.log(PercentAlong,RedDif,R);
+return rgbToHex(R,G,B);
+}
+
+};
+
+ColorBar.prototype.AddPole=function(){
+
+var Color=[100,100,100];
+
+this.pole.push(50);
+this.fixed.push('p');
+this.polevalue.push((this.polevalue[1]+this.polevalue[0])/2);
+this.polecolor.push(Color);
+};
+
+ColorBar.prototype.DeletePole=function(index){
+if(index>1){
+if(index<this.pole.length){
+this.pole.splice(index,1);
+this.polecolor.splice(index,1);
+this.polevalue.splice(index,1);
+this.fixed.splice(index,1);
+}
+}
+};
+ColorBar.prototype.UpdatePoles=function (MIN,MAX){
+this.min=MIN;
+this.max=MAX;
+
+var pole=[0,100];
+var value=[MIN,MAX];
+var range=MAX-MIN;
+for(var i=2;i<this.fixed.length;i++){
+if(this.fixed[i]=='p'){
+pole.push(this.pole[i]);
+value.push(this.min+this.pole[i]*range/100);
+
+}
+if(this.fixed[i]=='v'){
+pole.push((this.polevalue[i]-this.min)/range *100);
+value.push(this.polevalue[i]);
+}
+
+}
+this.pole=pole;
+this.polevalue=value;
+
+
+
+};
+
+
+ColorBar.prototype.UpdatePolePercent=function (MIN,MAX){
+this.min=MIN;
+this.max=MAX;
+
+
+this.pole=[];
+var range=MAX-MIN;
+for (var i=0;i<this.polevalue.length; i++){
+this.pole.push((this.polevalue[i]-this.min)/range *100)
+
+}
+
+};
+
+ColorBar.prototype.UpdatePoleValue=function (MIN,MAX){
+this.min=MIN;
+this.max=MAX;
+
+
+this.polevalue=[];
+var range=MAX-MIN;
+for (var i=0;i<this.pole.length; i++){
+this.polevalue.push(this.min+this.pole[i]*range/100);
+}
+/*
+this.polevalue[0]=MIN;
+this.polevalue[1]=MAX;*/
+};
+
+OurBar=new ColorBar(0,100);
+OurBar.AddPole();
+OurBar.polecolor[2]=[255,255,255];
+
+
+
+
+
+
+function handleFileSelect(evt) {
+//var BODY=document.getElementById('Display');
+//var BBB=BODY.cloneNode(false);
+//BODY.parentNode.replaceChild(BBB ,BODY);
+
+
+ RowHeaders=[];
+ ColumnHeaders=[];
+ RawData=[];
+    f = evt.target.files[0]; // FileList object
+	//console.log(file);
+	reader = new FileReader();
+	reader.onload = function(e){
+	 contents = e.target.result.split('\r');
+	 var FirstRow=0;
+	 
+	for(var i=ColLabels; i<contents.length; i++){
+
+	//Code taken from
+	
+	//**********************************http://stackoverflow.com/questions/11456850/split-a-string-by-commas-but-ignore-commas-within-double-quotes-using-javascript
+	var TmpString=contents[i].replace(',',"'',");
+	var arr = TmpString.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+	
+	//contents[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+/* will match:
+
+    (
+        ".*?"       double quotes + anything but double quotes + double quotes
+        |           OR
+        [^",]+    1 or more characters excl. double quotes, comma or spaces of any kind
+    )
+    (?=             FOLLOWED BY
+        \s*,        0 or more empty spaces and a comma
+        |           OR
+        \s*$        0 or more empty spaces and nothing else (end of string)
+    )
+
+*/
+arr = arr || [];
+// this will prevent JS from throwing an error in
+// the below loop when there are no matches
+
+	var Cells = arr; 
+	if (Cells.length > 1){
+	if(FirstRow==0){
+	FirstRow=1;
+	for(var j=0;j<RowNames;j++){
+	Cells.shift();
+	}
+	Cells.shift();
+	ColumnHeaders=Cells;
+	}
+	else{
+		for(var j=0;j<RowNames;j++){
+	Cells.shift();
+	}
+	RowHeaders.push(Cells.shift().replace("''","").replace('\n','').replace('\r',''));
+	RawData.push(Cells);
+	}
+	}
+}
+	TranslateDataArray();
+	}
+	if(typeof(f)!=='undefined'){
+
+	reader.readAsText(f);
+	}
+  }
+  
+  
+ 
+BinMe=true;
+BinKey=true;
+
+function TranslateDataArray(){
+DataTable=[];
+for(var i=0;i<RawData.length;i++){
+
+DataTable.push(RawData[i].slice());
+}
+if(IsLog){
+for(var i=0;i<DataTable.length;i++){
+for(var j=0;j<DataTable[i].length;j++){
+if(parseFloat(DataTable[i][j])!=0){
+DataTable[i][j]=Math.log2(parseFloat(DataTable[i][j]));
+}
+else{
+DataTable[i][j]=NaN;
+console.log(parseFloat(DataTable[i][j]),DataTable[i][j],i,j)
+}
+}
+}
+}
+
+if(BinMe){
+for(var i=0;i<DataTable.length;i++){
+	for(var j=0;j<DataTable[i].length;j++){
+	var NN=MakeBin(DataTable[i][j]);
+	//console.log(NN);
+	DataTable[i][j]=NN;
+	}
+}
+}
+ PopUseTable();
+  	//if(ColorOpen){
+	//PopUseTable();
+	//DrawCurrentBar(ColorContext);}
+	//else{
+	//PopUseTable();
+	
+	//}
+ }
+ 
+ 
+function GenerateBinValues(){
+BinValues=[];
+BinMin=-4;
+BinMax=4;
+BinStep=.25;
+BinRange=BinMax-BinMin;
+NumSteps=BinRange/BinStep;
+for(var i=0;i<=NumSteps;i++){
+BinValues.push(BinMin+(i*BinStep));
+}
+} 
+
+function MakeBin(NumberHere){
+NumToBin=parseFloat(NumberHere);
+Binned=NaN;
+//if(NumToBin<=BinValues[0]){
+//Binned=BinValues[0];
+//}
+if(NumToBin>=BinValues[BinValues.length-1]){
+Binned=BinValues[BinValues.length-1]+BinStep;
+}
+else if(NumToBin<=BinValues[0]){
+Binned=BinValues[0]-BinStep;
+}
+
+
+
+else{
+for(var i=0;i<BinValues.length;i++){
+	if(NumToBin<=BinValues[i]){
+		Binned=BinValues[i];
+		if(i>0){//round to nearest bin
+		var Prev=BinValues[i-1];
+		if(Math.abs(NumToBin-Prev)<Math.abs(NumToBin-BinValues[i])){
+		Binned=BinValues[i-1];
+		}
+		}
+		//Binned=BinValues[i];
+		break
+	}
+}
+}
+
+
+
+//console.log(Binned);
+
+return Binned
+}  
+ ShowCsvId=false;
+ 
+ RowLimiter=[];
+ColumnLimiter=[];
+RowString='';
+ColumnString='';
+
+
+function PopUseTable(){
+Selected={'type':'none','data':[]};
+if(ShowCsvId){
+var PRowHeaders=[];
+for(var i=0;i<RowHeaders.length;i++){
+PRowHeaders.push(RowHeaders[i]+'\t\t\t'+String(i+2));
+}
+var PColHeaders=[];
+for(var i=0;i<ColumnHeaders.length;i++){
+PColHeaders.push(ColumnHeaders[i]+'\t\t\t'+String(i+2));
+}
+
+
+}
+else{
+var PRowHeaders=RowHeaders;
+var PColHeaders=ColumnHeaders;
+}
+ 
+ 
+ if (RowLimiter.length==0){
+ var TempTable=DataTable;
+  UseRowHeaders=PRowHeaders;
+ }
+ else{
+ if((Math.sign(RowLimiter[0])==-1) || (Math.atan2(0,Math.sign(RowLimiter[0]))==Math.PI)){ //checking for +0 or -0
+  var TempTable=[];
+   UseRowHeaders=[];
+
+  for(var i=0;i<PRowHeaders.length;i++){
+ if (RowLimiter.indexOf(-i)==-1){
+ TempTable.push(DataTable[i]);
+ UseRowHeaders.push(PRowHeaders[i]);
+ }
+  }
+ 
+  
+ }
+ else{
+ 
+  var TempTable=[];
+   UseRowHeaders=[];
+ for(var i=0;i<RowLimiter.length;i++){
+ if(typeof PRowHeaders[RowLimiter[i]]!=='undefined'){
+ TempTable.push(DataTable[RowLimiter[i]]);
+ UseRowHeaders.push(PRowHeaders[RowLimiter[i]]);}
+ } 
+ }
+ }
+if(ColumnLimiter.length==0){
+
+ UseTable=TempTable;
+ UseColumnHeaders=PColHeaders;
+}
+else{
+ if((Math.sign(ColumnLimiter[0])==-1 )||(Math.atan2(0,Math.sign(ColumnLimiter[0]))==Math.PI)){
+   UseTable=[];
+    UseColumnHeaders=[];
+
+  for(var i=0; i<TempTable.length;i++){
+    var row=[];
+  for(var j=0;j<PColHeaders.length;j++){
+
+ if (ColumnLimiter.indexOf(-j)==-1){
+ row.push(TempTable[i][j]);
+ }
+
+  }
+   if(row.length!=0){
+ UseTable.push(row);
+ 
+ }
+  }
+ for(var j=0;j<PColHeaders.length;j++){
+ if (ColumnLimiter.indexOf(-j)==-1){
+ UseColumnHeaders.push(PColHeaders[j]);
+ }
+ }
+  
+ }
+ else{
+
+
+
+ UseTable=[];
+ UseColumnHeaders=[];
+ for(var j=0;j<TempTable.length;j++){
+  row=[];
+for(var i=0;i<ColumnLimiter.length;i++){
+if(typeof PColHeaders[ColumnLimiter[i]]!=='undefined'){
+row.push(TempTable[j][ColumnLimiter[i]])
+}
+
+ 
+ }
+ if(row.length!=0){
+ UseTable.push(row);
+ }
+ 
+ }
+ for(var i=0;i<ColumnLimiter.length;i++){
+if(typeof PColHeaders[ColumnLimiter[i]]!=='undefined'){
+ UseColumnHeaders.push(PColHeaders[ColumnLimiter[i]]);}
+ }
+
+}
+}
+DrawCurrentBar(ColorContext);
+//var context=Key.getContext('2d');
+ //DrawKey(context);
+//DrawHeatMap();
+}
+
+function DrawKey(context){
+context.clearRect(0,0,context.canvas.width,context.canvas.height);
+///////
+
+ ////////
+ 
+if(UseTable.length>0){
+
+
+if(!(BinMe&&BinKey)){
+ MAX=parseFloat(UseTable[0][0]);
+  MIN=parseFloat(UseTable[0][0]);
+for(var i=0;i<UseRowHeaders.length;i++){
+for(var j=0;j<UseColumnHeaders.length;j++){
+ if(!isNaN(parseFloat(UseTable[i][j]))  ){
+ if(isNaN(MAX)){
+  MAX=parseFloat(UseTable[i][j]);
+  MIN=parseFloat(UseTable[i][j]);
+ }
+ 
+ MAX=Math.max(MAX,parseFloat(UseTable[i][j]));
+ MIN=Math.min(MIN,parseFloat(UseTable[i][j]));
+ }
+ }}
+ }
+ else{
+ MIN=BinValues[0]-BinStep;
+ MAX=BinValues[BinValues.length-1]+BinStep;
+ }
+
+ RANGE=MAX-MIN;
+ OurBar.UpdatePoles(MIN,MAX);
+
+ //OK blue at MIN, Red at max.
+ 
+
+
+  context.font="10px sans-serif";
+  var Xpos=0;
+  var Leap=1;
+  var NumberofSteps=135;
+  var OY=-NumberofSteps
+ for(var i=0;i<NumberofSteps;i++){
+ //Translate i to RANGE so i=0 = MIN, i=100 = MAX
+ if(BinMe){
+ var Value=MakeBin(MIN+RANGE/NumberofSteps*i);
+ }
+ else{
+ var Value=MIN+RANGE/NumberofSteps*i;
+ }
+ 
+ //console.log(MIN);
+ 
+  var Ypos=i*Leap+10;
+  
+  if(Ypos-OY>10){
+  OY=Ypos;
+   context.fillStyle=rgbToHex(0, 0, 0);
+   context.fillText(Math.round(Value*100)/100,Xpos+10,Ypos);
+  }
+  
+ context.strokeStyle=OurBar.GetColor(Value);
+   context.beginPath();
+ context.moveTo(Xpos,Ypos);
+ context.lineTo(Xpos+10,Ypos);
+ context.stroke();
+ //context.fillRect(Xpos,Ypos,10,Leap);
+  
+
+
+ 
+ }
+}
+ }
+
+ Clicked=null;
+ Clicking=false;
+
+ Start={'x':0,'y':0};
+ OrigPos={'x':0,'y':0};
+function replaceAll(find, replace, str) {
+  return str.replace(new RegExp(escapeRegExp(find), 'g'), replace);
+}
+
+function escapeRegExp(string) {
+    return string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SomethingIsHighlighted=false;
+AddToHeat.disabled=true;
+
+function AddToCurrent(){
+
+var ID= Clicked.id.split('_r')[1];
+
+if(typeof(Extra[ID])!=='undefined'){
+var Old= Extra[ID];
+}
+else{
+Old=[];
+}
+var Add=prompt('Enter the row name to add to heatmap '+ID, '');
+Old.push(Add);
+Extra[ID]=Old;
+DrawHeatMap();
+}
+
+Extra={};
+function ResetHeat(){
+Extra={};
+DrawHeatMap();
+}
+function DrawHeatMap(){
+MinCell=GloCell;
+$( ".Heatmap" ).remove();
+
+if(typeof(UseRowHeaders)!=='undefined'){
+
+
+if(typeof(Zmoove)!=='undefined'){
+Zoom.removeEventListener('mousedown',Zmouse);
+Zoom.removeEventListener('mousemove',Zmoove);
+Zoom.removeEventListener('mouseup',Zup);
+Zoom.removeEventListener('mouseleave',Zle);
+}
+
+
+Zoom=document.getElementById('zoom-container');
+
+Zoom.addEventListener('mousedown',Zmouse=function(evt){
+if(SomethingIsHighlighted){
+
+if(Clicked!=null){
+Clicked.style.outline='none';
+SomethingIsHighlighted=false;
+AddToHeat.disabled=true;
+}
+Clicked=null;
+
+}
+}
+);
+
+Zoom.addEventListener('mousemove',Zmoove=function(evt){
+
+ OurButton=document.getElementById('brush-mode-button');
+if(OurButton.className.indexOf('active')!=-1){
+if(Clicked!=null){
+if(Clicking){
+
+var svg = document.querySelector('svg');
+var pt = svg.createSVGPoint();
+function cursorPoint(evt){
+  pt.x = evt.clientX; pt.y = evt.clientY;
+   G=document.getElementById('zoom-container').childNodes[0];
+  return pt.matrixTransform(G.childNodes[0].getScreenCTM().inverse());
+}
+var loc = cursorPoint(evt);
+
+var Transx=Start.x-loc.x;
+
+
+var Transy=Start.y-loc.y;
+Start.x=loc.x;
+Start.y=loc.y;
+
+var NewX=Clicked.transform.animVal[0]['matrix'].e-Transx;
+var NewY=Clicked.transform.animVal[0]['matrix'].f-Transy;
+Clicked.setAttribute('transform','translate('+NewX+','+NewY+')');
+
+}
+}
+}
+});
+Zoom.addEventListener('mouseup',Zup=function(evt){
+Clicking=false;
+if(Clicked!=null){
+SomethingIsHighlighted=true;
+AddToHeat.disabled=false;
+}
+});
+Zoom.addEventListener('mouseleave',Zle=function(evt){
+Clicking=false;
+if(Clicked!=null){
+SomethingIsHighlighted=true;
+AddToHeat.disabled=false;
+}
+});
+
+
+
+
+
+
+if(typeof(UseTable)!=='undefined'){
+var context=Key.getContext('2d');
+ DrawKey(context);
+}
+
+
+
+var numeric_array = new Array();
+var IDarray = new Array();
+for (var items in BobTheBuilder.map.reactions){
+    numeric_array.push( BobTheBuilder.map.reactions[items] );
+	IDarray.push(items);
+}
+for(var Reac=0;Reac<numeric_array.length;Reac++){
+var Reaction = numeric_array[Reac];
+
+var RawRules=Reaction.gene_reaction_rule;
+
+RawRules=replaceAll('and',';',RawRules);
+RawRules=replaceAll('or',';',RawRules);
+RawRules=replaceAll(' ',';',RawRules);
+RawRules=replaceAll(',',';',RawRules);
+RawRules=replaceAll('(',';',RawRules);
+RawRules=replaceAll(')',';',RawRules);
+RawRules=RawRules.split(';');
+var RefinedRules=[];
+for(var temp=0;temp<RawRules.length;temp++){
+if(RawRules[temp].length>0){
+if(RefinedRules.indexOf(RawRules[temp])==-1){
+RefinedRules.push(RawRules[temp]);}
+}
+}
+//console.log(IDarray[Reac]);
+if(typeof(Extra[IDarray[Reac]])!=='undefined'){
+for(var i=0;i<Extra[IDarray[Reac]].length;i++){
+RefinedRules.push(Extra[IDarray[Reac]][i]);
+}}
+
+//console.log(RefinedRules);
+var HeadersArray=[];
+for(var temp=0;temp<RefinedRules.length;temp++){
+
+if(UseRowHeaders.indexOf(RefinedRules[temp])!=-1){
+HeadersArray.push(UseRowHeaders.indexOf(RefinedRules[temp]));
+}
+
+}
+if(HeadersArray.length>0){
+
+
+//Problem with this, Need to render the text before we can measure it's width. Causing big problems.
+ParentReaction=document.getElementById('r'+IDarray[Reac]);
+Parent=document.getElementById('heatmapContainer_'+'r'+IDarray[Reac]);
+
+if(Parent==null){
+var XPOS=Reaction.label_x;
+var YPOS=Reaction.label_y;
+
+
+Parent=document.createElementNS('http://www.w3.org/2000/svg','g');
+Parent.setAttribute('id','heatmapContainer_'+'r'+IDarray[Reac]);
+Parent.setAttribute('transform','translate('+XPOS+','+YPOS+')');
+ParentReaction.appendChild(Parent);
+
+
+Parent.addEventListener('mousedown', function(evt){
+ OurButton=document.getElementById('brush-mode-button');
+if(OurButton.className.indexOf('active')!=-1){
+var svg = document.querySelector('svg');
+var pt = svg.createSVGPoint();
+function cursorPoint(evt){
+  pt.x = evt.clientX; pt.y = evt.clientY;
+  G=document.getElementById('zoom-container').childNodes[0];
+  return pt.matrixTransform(G.childNodes[0].getScreenCTM().inverse());
+}
+var loc = cursorPoint(evt);
+
+Start.x=loc.x;
+Start.y=loc.y;
+OrigPos.x=this.transform.animVal[0]['matrix'].e;
+OrigPos.y=this.transform.animVal[0]['matrix'].f;
+
+Clicking=true;
+
+if(Clicked!=null){
+Clicked.style.outline='none';
+SomethingIsHighlighted=false;
+AddToHeat.disabled=true;
+}
+Clicked=this;
+this.style.outline='thick solid black';
+
+}
+});
+/*
+Parent.addEventListener('mousemove', function(evt){
+ OurButton=document.getElementById('brush-mode-button');
+if(OurButton.className.indexOf('active')!=-1){
+if(Clicked!=null){
+if(Clicked==this){
+var Transx=Start.x-evt.clientX;
+
+
+var Transy=Start.y-evt.clientY;
+Start.x=evt.clientX;
+Start.y=evt.clientY;
+
+var NewX=this.transform.animVal[0]['matrix'].e-Transx;
+var NewY=this.transform.animVal[0]['matrix'].f-Transy;
+this.setAttribute('transform','translate('+NewX+','+NewY+')');
+}
+
+}
+}
+});*/
+
+Parent.addEventListener('mouseup', function(evt){
+Clicking=false;
+if(Clicked!=null){
+SomethingIsHighlighted=true;
+AddToHeat.disabled=false;
+}
+});
+
+/*Parent.addEventListener('mouseleave', function(evt){
+ OurButton=document.getElementById('brush-mode-button');
+if(OurButton.className.indexOf('active')!=-1){
+if(Clicked!=null){
+if(Clicked==this){
+var Transx=Start.x-evt.clientX;
+
+
+var Transy=Start.y-evt.clientY;
+Start.x=evt.clientX;
+Start.y=evt.clientY;
+
+var NewX=this.transform.animVal[0]['matrix'].e-Transx;
+var NewY=this.transform.animVal[0]['matrix'].f-Transy;
+this.setAttribute('transform','translate('+NewX+','+NewY+')');
+}
+
+}
+}
+});*/
+
+}
+
+
+//Now put row labels, column labels, and heat map blocks and labels directly into svg.
+
+TempRowArray=[];
+var W=0;
+var H=0;
+if(ShowRows.checked!=true){
+for(var temp=0;temp<HeadersArray.length;temp++){
+
+var ROWNAMES=document.createElementNS('http://www.w3.org/2000/svg', 'text');
+ROWNAMES.setAttribute('class','Heatmap');
+ROWNAMES.setAttribute('style','font-size:'+MinCell+'; font-weight:bold;');
+ROWNAMES.textContent=UseRowHeaders[HeadersArray[temp]];
+Parent.appendChild(ROWNAMES);
+var bbox=ROWNAMES.getComputedTextLength();
+
+TempRowArray.push(ROWNAMES);
+W=Math.max(W,bbox);
+//var Big=0.52*UseRowHeaders[HeadersArray[temp]].length*MinCell;
+//console.log(Big)
+//W=Math.max(W,Big);
+}
+}
+
+
+TempColArray=[];
+if(ShowColumns.checked!=true){
+for(var temp=0;temp<UseColumnHeaders.length;temp++){
+
+var ROWNAMES=document.createElementNS('http://www.w3.org/2000/svg', 'text');
+ROWNAMES.setAttribute('class','Heatmap');
+ROWNAMES.setAttribute('style','font-size:'+MinCell+'; font-weight:bold; position:fixed;');
+ROWNAMES.textContent=UseColumnHeaders[temp];
+Parent.appendChild(ROWNAMES);
+Mbbox=ROWNAMES.getComputedTextLength();
+H=Math.max(H,Mbbox);
+TempColArray.push(ROWNAMES);
+}
+}
+
+var RowStart=H;//YPOS+H;
+var ColStart=W;//XPOS+W;
+//console.log(W,H);
+
+
+for(var i=0;i<TempRowArray.length;i++){
+var bbox=TempRowArray[i].getComputedTextLength();
+//console.log(bbox);
+var ww=bbox
+//var Big=0.52*TempRowArray[i].textContent.length*MinCell;
+//ww=Math.max(ww,Big);
+TempRowArray[i].setAttribute('x',ColStart-ww);
+TempRowArray[i].setAttribute('y',RowStart+MinCell*(i+1));
+//Parent.appendChild(TempRowArray[i]);
+}
+for(var i=0;i<TempColArray.length;i++){
+var bbox=TempColArray[i].getBBox();
+TempColArray[i].setAttribute('transform','rotate(-90 0 0)');
+TempColArray[i].setAttribute('y',ColStart+MinCell*(i)+6*MinCell/8);
+TempColArray[i].setAttribute('x',-RowStart);
+
+}
+
+for(var i=0;i<HeadersArray.length;i++){
+
+var Ypos=RowStart+MinCell*i;
+for(var j=0; j<UseColumnHeaders.length;j++){
+var Xpos=ColStart+MinCell*(j);
+Cell=document.createElementNS("http://www.w3.org/2000/svg", "rect");
+Cell.setAttributeNS(null,'x',Xpos);
+Cell.setAttributeNS(null,'y',Ypos);
+Cell.setAttributeNS(null,'height',MinCell);
+Cell.setAttributeNS(null,'width',MinCell);
+
+var Value=parseFloat(UseTable[[HeadersArray[i]]][j]);
+
+if(!isNaN(Value)  ){
+Cell.setAttributeNS(null,'fill',OurBar.GetColor(Value));
+}
+ else{
+Cell.setAttributeNS(null,'fill','white');
+ }
+ Cell.setAttribute('class','Heatmap');
+ Parent.appendChild(Cell);
+/*var ROWNAMES=document.createElementNS('http://www.w3.org/2000/svg', 'text');
+ROWNAMES.setAttribute('class','Heatmap');
+ROWNAMES.setAttribute('style','font-size:12; fill:white; stroke:black; stroke-width:.5px;');
+ROWNAMES.textContent=Value;
+ROWNAMES.setAttribute('x',Xpos);
+ROWNAMES.setAttribute('y',Ypos+MinCell-4);
+Parent.appendChild(ROWNAMES);
+*/
+
+}
+
+}
+
+
+
+
+
+
+
+}
+
+
+}
+
+
+
+
+
+}
+}
+
+
+
+
+ GenerateBinValues();
+ document.getElementById('file').addEventListener('change', handleFileSelect, false); 
+</script>
+	
+
+
+
+	
+  <script>
+
+  
+  
+  
+
+  
+var map_data_static = null;
+var model_data_static = null;
+var reaction_data_static = null;
+var metabolite_data_static = null;
+var gene_data_static = null;
+var embedded_css_static = '@charset "utf-8";svg.escher-svg #mouse-node {  fill: none;}svg.escher-svg #canvas {  stroke: #ccc;  stroke-width: 7px;  fill: white;}svg.escher-svg .resize-rect {  fill: black;  opacity: 0;  stroke: none;}svg.escher-svg .label {  font-family: sans-serif;  font-style: italic;  font-weight: bold;  font-size: 8px;  fill: black;  stroke: none;  text-rendering: optimizelegibility;  cursor: default;}svg.escher-svg .reaction-label {  font-size: 30px;  fill: rgb(32, 32, 120);  text-rendering: optimizelegibility;}svg.escher-svg .node-label {  font-size: 20px;}svg.escher-svg .gene-label {  font-size: 18px;  fill: rgb(32, 32, 120);  text-rendering: optimizelegibility;}svg.escher-svg .text-label .label {  font-size: 50px;}svg.escher-svg .text-label-input {  font-size: 50px;}svg.escher-svg .node-circle {  stroke-width: 2px;}svg.escher-svg .midmarker-circle {fill: white; stroke: rgb(50, 50, 50); stroke-width: 3px;}svg.escher-svg .multimarker-circle {fill: white;   stroke: rgb(50, 50, 50); stroke-width: 3px;}svg.escher-svg g.selected .node-circle{  stroke-width: 6px;  stroke: rgb(20, 113, 199);}svg.escher-svg g.selected .label {  fill: rgb(20, 113, 199);}svg.escher-svg .metabolite-circle {  stroke: rgb(162, 69, 16);  fill: rgb(224, 134, 91);}svg.escher-svg g.selected .metabolite-circle {  stroke: rgb(5, 2, 0);}svg.escher-svg .segment {  stroke: #334E75;  stroke-width: 10px;  fill: none;}svg.escher-svg .arrowhead {  fill: #334E75;}svg.escher-svg .stoichiometry-label-rect {  fill: white;  opacity: 0.5;}svg.escher-svg .stoichiometry-label {  fill: #334E75;  font-size: 17px;}svg.escher-svg .membrane {  fill: none;  stroke: rgb(255, 187, 0);}svg.escher-svg .brush .extent {  fill-opacity: 0.1;  fill: black;  stroke: #fff;  shape-rendering: crispEdges;}svg.escher-svg #brush-container .background {  fill: none;}svg.escher-svg .bezier-circle {  fill: rgb(255,255,255);}svg.escher-svg .bezier-circle.b1 {  stroke: red;}svg.escher-svg .bezier-circle.b2 {  stroke: blue;}svg.escher-svg .connect-line{  stroke: rgb(200,200,200);}svg.escher-svg .direction-arrow {  stroke: black;  stroke-width: 1px;  fill: white;  opacity: 0.3;}svg.escher-svg .start-reaction-cursor {  cursor: pointer;}svg.escher-svg .start-reaction-target {  stroke: rgb(100,100,100);  fill: none;  opacity: 0.5;}svg.escher-svg .rotation-center-line {  stroke: red;  stroke-width: 5px;}svg.escher-svg .highlight {  fill: #D97000;  text-decoration: underline;}svg.escher-svg .cursor-grab {  cursor: grab;  cursor: -webkit-grab;}svg.escher-svg .cursor-grabbing {  cursor: grabbing;  cursor: -webkit-grabbing;}svg.escher-svg .edit-text-cursor {  cursor: text;}"}';
+ 
+  </script>
+  
+ 
+ 
+ 
+ 
+ 
+ 
+  <script>
+   if (typeof define === "function" && define.amd) {
+       // require.js is available: use it to load d3 and escher
+       
+       require.config({paths: { d3: "RequiredFiles/escher/lib/d3.min",
+                                escher: "RequiredFiles/escher/lib/escher-1.2.0.min" }});
+       require(["d3", "escher"], function(d3, escher) {
+           window.d3 = d3;
+           options = { enable_editing: true,
+menu: "all",
+enable_keys: true,
+scroll_behavior: "zoom",
+fill_screen: true,
+reaction_data: reaction_data_static,
+metabolite_data: metabolite_data_static,
+gene_data: gene_data_static,
+never_ask_before_quit: false,
+marker_radius:15,
+show_gene_reaction_rules: true,
+};
+
+escher.static.load_map_model_from_url("1-0-0/2/maps/", "1-0-0/2/models/", 
+{"models": [{"organism": "Escherichia coli", "model_name": "e_coli_core"}, {"organism": "Escherichia coli", "model_name": "iJO1366"}, {"organism": "Homo sapiens", "model_name": "RECON1"}, {"organism": "Saccharomyces cerevisiae", "model_name": "iMM904"}], "maps": [{"map_name": "e_coli_core.Core metabolism", "organism": "Escherichia coli"}, {"map_name": "iJO1366.Central metabolism", "organism": "Escherichia coli"}, {"map_name": "iJO1366.Fatty acid beta-oxidation", "organism": "Escherichia coli"}, {"map_name": "iJO1366.Fatty acid biosynthesis (saturated)", "organism": "Escherichia coli"}, {"map_name": "iJO1366.Nucleotide metabolism", "organism": "Escherichia coli"}, {"map_name": "RECON1.Amino acid metabolism (partial)", "organism": "Homo sapiens"}, {"map_name": "RECON1.Carbohydrate metabolism", "organism": "Homo sapiens"}, {"map_name": "RECON1.Glycolysis TCA PPP", "organism": "Homo sapiens"}, {"map_name": "RECON1.Inositol retinol metabolism", "organism": "Homo sapiens"}, {"map_name": "RECON1.Tryptophan metabolism", "organism": "Homo sapiens"}, {"map_name": "iMM904.Central carbon metabolism", "organism": "Saccharomyces cerevisiae"}]}, 
+options, function(map_data_static, model_data_static, options) {
+BobTheBuilder=escher.Builder(map_data_static, model_data_static, embedded_css_static, d3.select("#static"), options);
+MapLoaded();
+});
+
+       });
+       
+   } else {
+       if (window.escher !== undefined && window.d3 !== undefined) {
+           // already loaded: just create the figure
+           !function(escher, d3) {
+               options = { enable_editing: true,
+menu: "all",
+enable_keys: true,
+scroll_behavior: "zoom",
+fill_screen: true,
+reaction_data: reaction_data_static,
+metabolite_data: metabolite_data_static,
+gene_data: gene_data_static,
+never_ask_before_quit: false,
+marker_radius:15,
+show_gene_reaction_rules: true,
+};
+
+escher.static.load_map_model_from_url("1-0-0/2/maps/", "1-0-0/2/models/", 
+{"models": [{"organism": "Escherichia coli", "model_name": "e_coli_core"}, {"organism": "Escherichia coli", "model_name": "iJO1366"}, {"organism": "Homo sapiens", "model_name": "RECON1"}, {"organism": "Saccharomyces cerevisiae", "model_name": "iMM904"}], "maps": [{"map_name": "e_coli_core.Core metabolism", "organism": "Escherichia coli"}, {"map_name": "iJO1366.Central metabolism", "organism": "Escherichia coli"}, {"map_name": "iJO1366.Fatty acid beta-oxidation", "organism": "Escherichia coli"}, {"map_name": "iJO1366.Fatty acid biosynthesis (saturated)", "organism": "Escherichia coli"}, {"map_name": "iJO1366.Nucleotide metabolism", "organism": "Escherichia coli"}, {"map_name": "RECON1.Amino acid metabolism (partial)", "organism": "Homo sapiens"}, {"map_name": "RECON1.Carbohydrate metabolism", "organism": "Homo sapiens"}, {"map_name": "RECON1.Glycolysis TCA PPP", "organism": "Homo sapiens"}, {"map_name": "RECON1.Inositol retinol metabolism", "organism": "Homo sapiens"}, {"map_name": "RECON1.Tryptophan metabolism", "organism": "Homo sapiens"}, {"map_name": "iMM904.Central carbon metabolism", "organism": "Saccharomyces cerevisiae"}]}, 
+options, function(map_data_static, model_data_static, options) {
+BobTheBuilder=escher.Builder(map_data_static, model_data_static, embedded_css_static, d3.select("#static"), options);
+MapLoaded();
+
+});
+
+           }(window.escher, window.d3);
+       } else {
+           // require.js not available: dynamically load d3 & escher
+           escher_load_lib("RequiredFiles/escher/lib/d3.min.js", function() {
+               escher_load_lib("RequiredFiles/escher/lib/escher-1.2.0.min.js", function() {
+                   options = { enable_editing: true,
+menu: "all",
+enable_keys: true,
+scroll_behavior: "zoom",
+fill_screen: true,
+reaction_data: reaction_data_static,
+metabolite_data: metabolite_data_static,
+gene_data: gene_data_static,
+never_ask_before_quit: false,
+marker_radius:15,
+show_gene_reaction_rules: true,
+};
+
+escher.static.load_map_model_from_url("1-0-0/2/maps/", "1-0-0/2/models/", 
+{"models": [{"organism": "Escherichia coli", "model_name": "e_coli_core"}, {"organism": "Escherichia coli", "model_name": "iJO1366"}, {"organism": "Homo sapiens", "model_name": "RECON1"}, {"organism": "Saccharomyces cerevisiae", "model_name": "iMM904"}], "maps": [{"map_name": "e_coli_core.Core metabolism", "organism": "Escherichia coli"}, {"map_name": "iJO1366.Central metabolism", "organism": "Escherichia coli"}, {"map_name": "iJO1366.Fatty acid beta-oxidation", "organism": "Escherichia coli"}, {"map_name": "iJO1366.Fatty acid biosynthesis (saturated)", "organism": "Escherichia coli"}, {"map_name": "iJO1366.Nucleotide metabolism", "organism": "Escherichia coli"}, {"map_name": "RECON1.Amino acid metabolism (partial)", "organism": "Homo sapiens"}, {"map_name": "RECON1.Carbohydrate metabolism", "organism": "Homo sapiens"}, {"map_name": "RECON1.Glycolysis TCA PPP", "organism": "Homo sapiens"}, {"map_name": "RECON1.Inositol retinol metabolism", "organism": "Homo sapiens"}, {"map_name": "RECON1.Tryptophan metabolism", "organism": "Homo sapiens"}, {"map_name": "iMM904.Central carbon metabolism", "organism": "Saccharomyces cerevisiae"}]}, 
+options, function(map_data_static, model_data_static, options) {
+BobTheBuilder=escher.Builder(map_data_static, model_data_static, embedded_css_static, d3.select("#static"), options);
+MapLoaded();
+
+});
+
+               })
+           });
+       }
+  }
+  </script>
+
+
+    <script>
+     // temporary fixes for mobile browsers (currently iOS)
+     if (navigator.userAgent.match(/.*OS 7_\d/i)) {
+         $(".fill-screen-div").css('height', window.innerHeight +"px");
+         $(window).resize(function(){
+             $(".fill-screen-div").css('height', window.innerHeight +"px");
+             document.body.scrollTop = 0;
+         })
+     }
+	  
+    </script>
+ 
+  </body>
+</html>

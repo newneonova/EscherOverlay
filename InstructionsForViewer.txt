@@ -1,0 +1,111 @@
+This is the Escher overlay HeatmapBuilderV7.html.  This is a modified version of Escher 1.2 
+
+which is designed to allow one to add timeseries protein expression heatmaps to the escher map.
+
+
+Instructions:
+
+Extract all files and folders to a new folder. Default options should work best for this. 
+
+By default you should now have a folder named "HeatmapBuilderv7" and the contents of this file 
+
+should be:
+
+A folder named "RequiredFiles"
+A folder named "Samples"
+A file named "HeatmapBuilderV7.html"
+A file named "InstructionsForViewer.txt" which includes the instructions that you are reading 
+
+now.
+
+Run the program by dragging the file called HeatmapBuilderV7.html into an open window of the web 
+
+browser Google Chrome. This program is not tested in any other browsers (such as firefox, safari 
+
+or internet explorer and so probably will not work in those browsers).
+
+Load the Escher map by clicking on "Map" at the top of the window and selecting "Load Map JSON 
+
+(Ctrl+O)".  There is a sample escher map "AminosugarmetabolismSampleMap.json" in the file 
+
+Samples.
+
+On the map, under the reaction names should be smaller text, these are the gene reaction rules. 
+
+These are what are used to associate protein expression data with the reactions.
+
+
+To add protein heatmaps click on the "Add protein heatmaps" button in the lower left side of the 
+
+screen.  This will open an ugly box on the top left of the screen.  Load the protein expression 
+
+data by clicking on "Choose File" and choosing the CSV file which contains the expression data.
+
+The CSV (Comma separated variable) file should be formatted following the example file 
+
+"SampleData.csv" located in Samples.
+
+The first line of the file is the headers. The header in the first cell is not used but the 
+
+remainder of the first row is the names of the data columns and are used for the column names in 
+
+the generated heatmaps.
+
+The first column of the CSV file for the remainder of the rows gives the rowname for the 
+
+generated heatmaps and should contain the gene or protein ID in the exact same format as those 
+
+listed in the gene reaction rules for the map. For example in the sample, both the map and the 
+
+expression csv have the proteins identified by their pt3 ID number.
+
+The remaining cells should contain numbers. This version of the heatmap viewer was designed to 
+
+display log_2 fold scaled numbers which lie between -4.5 and 4.5.
+
+
+
+After adding heatmaps. You have several options available to change their appearance. You can 
+
+set the cell size by clicking "set cell size" to make the heatmap squares larger or smaller 
+
+(default is 60).
+
+Hitting the v key (or clicking on select mode) in the escher plot will allows you to select 
+
+heatmaps by clicking on them, you can drag them around in the same way you can drag escher nodes 
+
+(like metabolites and reactions) to reposition them.
+
+Clicking on "Change color scale" lets you define the colors and the color stops to use when 
+
+rendering the heatmap. 
+
+Clicking "Add row to current heatmap" when a heatmap is selected (Selected heatmaps have a black 
+
+border outlining them) will ask you to type the name for the row that you want to be added to a 
+
+particular heatmap.  The row name must match the geneID that is used with the data (entries from 
+
+the first column of the CSV file).
+
+Clicking "Reset all heatmaps" will remove all added rows from all heatmaps.
+
+
+
+
+For other display options. Click "Open other options".
+
+You can use these to change the default name of the map (the file name of the map when it is 
+
+saved). You can color the metabolite circles by detected compartments (define different colors 
+
+if the metabolite is in the mitocondria, the cytoplasm etc).  If the connecting lines look way 
+
+off (swooping in all sorts of directions) and it would be too much work to set the bevils 
+
+correctly, you can select the troubled reactions and nodes and click the button "Make selected 
+
+reactions look angular" to make the lines between nodes point directly from node to node.
+
+Finally you can change the font size for the names of the selected reactions.
