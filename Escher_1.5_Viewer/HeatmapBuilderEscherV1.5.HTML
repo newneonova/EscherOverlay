@@ -36,6 +36,13 @@ THE SOFTWARE.
 <div id="map_container"></div>
 
 <style>
+
+   #structures-buttons {
+     position: absolute;
+     bottom: 5px;
+     left: 5px;
+   }
+
 .Pretty {
 	border-radius: 25px;
 border: 2px solid #806000;
@@ -61,17 +68,25 @@ menu: 'all',
 BUILDER = escher.Builder(null, null, css, d3.select('#map_container'), options);
 </script>
 
-<div id='ButtonContainer' class='Pretty' style="position:fixed;bottom:10px;right:60px">
-<button id='BToggler' type="button" onclick="ToggleButtons()">Expand Options</button>
-<div id='ButtonSub' style="display:none;">
-<h3>Graph Options</h3>
-<div>
-<button onclick='ChangeName()'>Change map name</button>
-<button onclick='ColorMetabolites()'>Color metabolites by compartment</button>
-<button onclick='MakeLookRobotSelected()'>Make selected reactions look angular</button>
-<button onclick='ChangeReactionFontSize()'>Change selected reaction label font size</button>
-<button id='NodesButton' onclick='ToggleNodes()'>Bigger Internal Nodes</button>
-</div>
+
+
+
+
+
+    <div id="structures-buttons">
+
+      <a class="btn btn-default btn-md" onclick="ToggleHeatmaps()" id="HeatmapButt">
+        Add heatmaps
+      </a>
+	   
+	  	     <a class="btn btn-default btn-md" onclick="ToggleButtons()" id="BToggler" >
+        Open other options
+      </a>
+
+
+  </div>
+
+ <div id='HeatmapPanel' class='Pretty' style="display:none; position:fixed;">
 <h3>Heatmap Options</h3>
 <div>
 <button type="button" onclick="SetSize()">Set heatmap size</button>
@@ -85,7 +100,26 @@ BUILDER = escher.Builder(null, null, css, d3.select('#map_container'), options);
 <span style="display:inline;"><label for="file" >Load expression data: </label> <input id='file' type="file" /> </span>
 </div>
 </div>
+
+
+
+
+
+
+<div id='ButtonSub' class='Pretty' style="display:none;position:fixed;">
+<h3>Graph Options</h3>
+<div>
+<button onclick='ChangeName()'>Change map name</button>
+<button onclick='ColorMetabolites()'>Color metabolites by compartment</button>
+<button onclick=''>Color selected nodes</button>
+<button onclick=''>Color selected arrows</button>
+<button onclick='MakeLookRobotSelected()'>Make selected reactions look angular</button>
+<button onclick='ChangeReactionFontSize()'>Change selected reaction label font size</button>
+<button id='NodesButton' onclick='ToggleNodes()'>Bigger Internal Nodes</button>
 </div>
+
+
+
 
 
 <div id='ColorMenu' style="visibility:hidden; position:fixed;">
@@ -143,7 +177,108 @@ SomethingIsHighlighted=false;
 AddToHeat.disabled=true;
 //**GLOBAL VARIABLES**
 
+function HideAll(){
+		ButtonSub.style.display='none';
+		BToggler.textContent='Expand Options';
+		HeatmapPanel.style.display='none';
+		HeatmapButt.textContent='Add Heatmaps';
+}
 
+function ToggleButtons(){
+
+	if (ButtonSub.style.display=='none'){
+		HideAll();
+		BToggler.textContent='Hide Options';
+		ButtonSub.style.display='';
+	}
+	else{
+	HideAll();
+	}
+}
+
+function ToggleHeatmaps(){
+
+	if (HeatmapPanel.style.display=='none'){
+		HideAll();
+		HeatmapButt.textContent='Hide Heatmap Options';
+		HeatmapPanel.style.display='';
+	}
+	else{
+	HideAll();
+	}
+
+}
+
+function LoadAuxData(){
+//OK, will store anything we want in a JSON contained in BUILDER.map['map_description']
+//Split by the string '____****____'
+//anything to the left is the JSON object, anything to the right is the original description
+if(BUILDER.map['map_description'].length==0){
+BUILDER.map['map_description']="No Desc.";
+}
+
+var Temps = BUILDER.map['map_description'].split('____****____');
+
+try{
+var V=JSON.parse(Temps[0]);
+return(V)
+}
+catch(e){
+return({})
+}
+
+}
+
+function SaveAuxData(DatToSave){
+//DatToSave is a JSON
+var Temps = BUILDER.map['map_description'].split('____****____');
+if (Temps.length>1){
+var OldDesc=Temps[1];
+}
+else{
+OldDesc=Temps[0];
+}
+
+BUILDER.map['map_description']=JSON.stringify(DatToSave)+'____****____'+OldDesc;
+}
+
+function SaveAppend(Name,Data){
+var Dat=LoadAuxData();
+Dat[Name]=Data;
+SaveAuxData(Dat);
+}
+
+function DeleteAttribute(Name){
+var Dat=LoadAuxData();
+Dat[Name]=null;
+SaveAuxData(Dat);
+}
+
+function LoadStyleStuff(){
+var Dat=LoadAuxData();
+if(Dat['Reaction_Fonts']!=null){
+RenderReactionFonts(Dat['Reaction_Fonts']);
+}
+
+}
+
+
+function RenderReactionFonts(AssocArray){
+for(n in AssocArray){
+var Rhtml=document.getElementById('r'+n);
+		Rhtml.childNodes[0].childNodes[1].style.fontSize=AssocArray[n];
+}
+
+}
+
+function RenderNodeColors(AssocArray){
+for(n in AssocArray){
+var Rhtml=document.getElementById('n'+n);
+		Rhtml.childNodes[0].style.fill=AssocArray[n][0];
+		Rhtml.childNodes[0].style.stroke=AssocArray[n][1];
+}
+
+}
 
 function ChangeReactionFontSize(){
 	var fontsize= prompt('Set font size for selected reactions','30px');
@@ -160,6 +295,17 @@ function ChangeReactionFontSize(){
 				REACTIONID.push(NODE.connected_segments[k].reaction_id);
 			}}}
 	
+	var OldFonts=LoadAuxData()['Reaction_Fonts'];
+	if (OldFonts==null){
+	OldFonts={};
+	}
+	for(var n=0;n<REACTIONID.length;n++){
+	OldFonts[REACTIONID[n]]=fontsize;
+	}
+	SaveAppend('Reaction_Fonts',OldFonts);
+	RenderReactionFonts(OldFonts);
+	
+	/*
 	for(var n=0;n<REACTIONID.length;n++){
 		var Rhtml=document.getElementById('r'+REACTIONID[n]);
 		var OldClass=Rhtml.childNodes[0].childNodes[1].getAttribute('class').split('ReacFont_')[0];
@@ -175,256 +321,47 @@ function ChangeReactionFontSize(){
 	StyleString=StyleString+'svg.escher-svg .ReacFont_'+fontsize+'{font-size:'+fontsize+';} ';
 	OldStyle.innerHTML=OldStyle.innerHTML+StyleString;
 	PARENT.appendChild(OldStyle);
-}
-
-
-
-function MakeLookRobotSelected(){
-	var NODEHTML=document.getElementsByClassName('node selected');
-	var NODES=[];
-	var REACTIONID=[];
-	var NODEID=[];
-	for (var n=0; n<NODEHTML.length; n++){
-		var ID = NODEHTML[n].id.substring(1);
-		NODEID.push(ID);
-		var NODE = BUILDER.map.nodes[ID];
-		NODES.push(NODE);
-		for(k=0;k<NODE.connected_segments.length;k++){
-			if (REACTIONID.indexOf(NODE.connected_segments[k].reaction_id)==-1){
-				REACTIONID.push(NODE.connected_segments[k].reaction_id);
-			}}}
-	var REACTIONS=[];
-	for(k=0;k<REACTIONID.length;k++){
-		REACTIONS.push(BUILDER.map.reactions[REACTIONID[k]]);
-	}
-	//console.log(NODES,REACTIONID,REACTIONS)
-	for(var i=0; i<REACTIONS.length;i++){
-		var S=REACTIONS[i].segments;
-		var Skeys=Object.keys(S);
-		for(var j=0;j<Skeys.length;j++){
-			CurrentSeg=S[Skeys[j]];
-			var FromID=NODEID.indexOf(CurrentSeg.from_node_id);
-			var ToID=NODEID.indexOf(CurrentSeg.to_node_id);
-			var FnodePos=[BUILDER.map.nodes[CurrentSeg.from_node_id].x,BUILDER.map.nodes[CurrentSeg.from_node_id].y];
-			var ToNodePos=[BUILDER.map.nodes[CurrentSeg.to_node_id].x,BUILDER.map.nodes[CurrentSeg.to_node_id].y];
-			var Xdist=FnodePos[0]-ToNodePos[0];
-			var Ydist=FnodePos[1]-ToNodePos[1];
-			var DIST=Math.sqrt(Xdist*Xdist +Ydist*Ydist);
-			//b1 is from, b2 is to?
-			if(FromID!=-1){ //make bevil dist 20 from fromnode point at tonode
-				if(CurrentSeg.b1!=null){
-					CurrentSeg.b1.x=FnodePos[0]-(40*Xdist)/DIST;
-					CurrentSeg.b1.y=FnodePos[1]-(40*Ydist)/DIST;
-				}
-			}
-			if(ToID!=-1){ //make bevil dist 20 from tonode point at fromnode
-				if(CurrentSeg.b2!=null){
-					CurrentSeg.b2.x=ToNodePos[0]+(40*Xdist)/DIST;
-					CurrentSeg.b2.y=ToNodePos[1]+(40*Ydist)/DIST;
-				}
-			}
-		}
-	}
-	//Go through reactions, go through segments, go through bevils, if the bevil is associated with a node in NODES then make it pretty. else leave it alone.
-	//get highlighted nodes
-	//figure out which reaction each node belongs to
-	//First pass, make bevils point straight at targets
-	BUILDER.map.draw_all_reactions();
-}
-
-
-
-function   ClosePickerTwo(Something,CColor){
-	CompColor[Something.id.split('Comp_')[1]]=CColor;
-	Something.setAttribute('style','background-color:'+CompColor[Something.id.split('Comp_')[1]]+';');
-	ColorPickerTwo.style.visibility='hidden';
-	Pickertwo.width=0;
-	Pickertwo.height=0;
-	if(typeof PMDT !== 'undefined'){
-		Pickertwo.removeEventListener('mousedown', PMDT);
-		Pickertwo.removeEventListener('mousemove', PMMT);
-		Pickertwo.removeEventListener('mouseleave', PMLT);
-		Pickertwo.removeEventListener('mouseup', PMUT);
-	}
+	SaveAppend('FONTS',OldStyle.innerHTML);//should be a map of reaction ID to size*/
 }
 
 
 function DefaultColors(){
 	//OtherOptionPanel.style.visibility='visible';
 	CompColorPanel.style.visibility='hidden';
-	OldDesc=BUILDER.map['map_description'].split('____****____')[1];
-	BUILDER.map['map_description']='____****____'+OldDesc;
-	var PARENT=document.getElementsByTagName('defs')[0];
-	var OldStyle=document.getElementById('COLOR');
-	if(OldStyle!=null){
-		PARENT.removeChild(OldStyle);
+	var OldColorMap=LoadAuxData()['Node_Color'];
+	if (OldColorMap==null){
+	OldColorMap={};
 	}
-	for(var i=0;i<CatagoryType.length;i++){
-		CompColor[CatagoryType[i]]=rgbToHex(224, 134, 91);
-		document.getElementById('Comp_'+CatagoryType[i]).setAttribute('style','background-color:'+CompColor[CatagoryType[i]]+';');
+	DeleteAttribute("Node_Color");
+	for(n in OldColorMap){
+	//n is node id
+	var Node=document.getElementById('n'+n);
+		Node.childNodes[0].style.fill=null;
+		Node.childNodes[0].style.stroke=null;
 	}
-}
 
-function ChangeColor(Something){
-	//console.log(Something);
-	ColorPickerTwo.style.visibility='visible';
-	CColor=CompColor[Something.id.split('Comp_')[1]];
-	Pcontext=Pickertwo.getContext('2d');
-	Pickertwo.width=350;
-	Pickertwo.height=200;
-	Pcontext.fillStyle=rgbToHex(25,25,25);
-	Pcontext.fillRect(0,0,Pcontext.canvas.width,Pcontext.canvas.height);
-	//Thanks to http://seesparkbox.com/foundry/how_i_built_a_canvas_color_picker
-	var gradient = Pcontext.createLinearGradient(5,5,Pickertwo.width-80,5);
-	gradient.addColorStop(0,    "rgb(255,   0,   0)");
-	gradient.addColorStop(0.15, "rgb(255,   0, 255)");
-	gradient.addColorStop(0.33, "rgb(0,     0, 255)");
-	gradient.addColorStop(0.49, "rgb(0,   255, 255)");
-	gradient.addColorStop(0.67, "rgb(0,   255,   0)");
-	gradient.addColorStop(0.84, "rgb(255, 255,   0)");
-	gradient.addColorStop(1,    "rgb(255,   0,   0)");
-	Pcontext.fillStyle=gradient;
-	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
-	gradient = Pcontext.createLinearGradient(0, 5, 0, Pcontext.canvas.height-10);
-	gradient.addColorStop(0,   "rgba(255, 255, 255, 1)");
-	gradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
-	gradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
-	gradient.addColorStop(1,   "rgba(0,     0,   0, 1)");
-	Pcontext.fillStyle=gradient;
-	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
-	Pcontext.fillStyle=rgbToHex(210,210,210);
-	Pcontext.fillRect(Pcontext.canvas.width-50,Pcontext.canvas.height-30,40,20);
-	Pcontext.fillStyle=rgbToHex(0,0,0);
-	Pcontext.font="8px sans-serif";
-	Pcontext.fillText('Confirm',Pcontext.canvas.width-50+5,Pcontext.canvas.height-30+10);
-	Pcontext.fillStyle=CColor;
-	Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
-	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
-	gradient.addColorStop(0,    "rgb(0,   0,   0)");
-	gradient.addColorStop(.5,   CColor);
-	gradient.addColorStop(1,    "rgb(255,   255,   255)");
-	Pcontext.fillStyle=gradient;
-	Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
-	PickDown=false;
-	if(typeof PMDT !== 'undefined'){
-		Pickertwo.removeEventListener('mousedown', PMDT);
-		Pickertwo.removeEventListener('mousemove', PMMT);
-		Pickertwo.removeEventListener('mouseleave', PMLT);
-		Pickertwo.removeEventListener('mouseup', PMUT);
-	}
-	Pickertwo.addEventListener('mousedown', PMDT=function(evt) {
-		PickDown=true;
-		var rect = Pickertwo.getBoundingClientRect();
-		var x = evt.clientX - rect.left;
-		var y = evt.clientY - rect.top;
-		if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
-			var c = Pcontext.getImageData(x, y, 1, 1).data;
-			CColor=rgbToHex(c[0],c[1],c[2]);
-			Pcontext.fillStyle=CColor;
-			Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
-		}
-		if((x>Pcontext.canvas.width-50)&&(x<Pcontext.canvas.width-50+40)&&(y>Pcontext.canvas.height-30)&&(y<Pcontext.canvas.height-30+20)){
-			ClosePickerTwo(Something,CColor);
-		}
-	});
-	Pickertwo.addEventListener('mousemove', PMMT=function(evt) {
-		if(PickDown==true){
-			var rect = Pickertwo.getBoundingClientRect();
-			var x = evt.clientX - rect.left;
-			var y = evt.clientY - rect.top;
-			if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
-				var c = Pcontext.getImageData(x, y, 1, 1).data;
-				CColor=rgbToHex(c[0],c[1],c[2]);
-				Pcontext.fillStyle=CColor;
-				Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
-			}
-		}
-	});
-	Pickertwo.addEventListener('mouseleave', PMLT=function(evt) {
-		if(PickDown==true){
-			var rect = Pickertwo.getBoundingClientRect();
-			var x = evt.clientX - rect.left;
-			var y = evt.clientY - rect.top;
-			PickDown=false;
-			if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
-			}
-			else if (x>Pcontext.canvas.width-60){
-				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
-				
-				gradient.addColorStop(0,    "rgb(0,   0,   0)");
-				gradient.addColorStop(1,    "rgb(255,   255,   255)");
-				Pcontext.fillStyle=gradient;
-				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
-			}
-			else{
-				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
-				var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
-				
-				gradient.addColorStop(0,    "rgb(0,   0,   0)");
-				gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
-				gradient.addColorStop(1,    "rgb(255,   255,   255)");
-				Pcontext.fillStyle=gradient;
-				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
-			}}});
-	Pickertwo.addEventListener('mouseup', PMUT=function(evt) {
-		var rect = Pickertwo.getBoundingClientRect();
-		var x = evt.clientX - rect.left;
-		var y = evt.clientY - rect.top;
-		PickDown=false;
-		if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
-		}
-		else if (x>Pcontext.canvas.width-60){
-			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
-			
-			gradient.addColorStop(0,    "rgb(0,   0,   0)");
-			gradient.addColorStop(1,    "rgb(255,   255,   255)");
-			Pcontext.fillStyle=gradient;
-			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
-		}
-		else{
-			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
-			var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
-			
-			gradient.addColorStop(0,    "rgb(0,   0,   0)");
-			gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
-			gradient.addColorStop(1,    "rgb(255,   255,   255)");
-			Pcontext.fillStyle=gradient;
-			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
-		}});
 }
 
 
 function ColorMetabolites(){
-	//CloseOther();
 	CompColorPanel.style.visibility='visible';
-	//first parse description for possible compartment associate array
-	try{ CompColor=JSON.parse(PossibleStorageString=BUILDER.map['map_description'].split('____****____')[0]);
-	}
-	catch (e) {
-		CompColor={};
-		BUILDER.map['map_description']='____****____'+BUILDER.map['map_description'];
-	}
+
 	var MapNodes=BUILDER.map['nodes'];
 	var MapNodesNames=Object.keys(MapNodes);
 	CatagoryType=[];
+	CompColor={};
 	for(var i=0;i<MapNodesNames.length;i++){
 		if (MapNodes[MapNodesNames[i]]['node_type']=='metabolite'){
 			ID=MapNodes[MapNodesNames[i]]['bigg_id'];
 			Cat=ID.substr(ID.length-1);
 			if(CatagoryType.indexOf(Cat)==-1){
 				CatagoryType.push(Cat);
+				Node=document.getElementById('n'+MapNodesNames[i])
+				CompColor[Cat]=window.getComputedStyle( Node.childNodes[0] , null).getPropertyValue( 'fill' );
 			}
-			var N=document.getElementById('n'+MapNodesNames[i]);
-			var P=N.getElementsByClassName('node-circle')[0];
-			OldClass=P.getAttribute('class');
-			OldClass=OldClass.replace(' Cat_'+Cat,'');
-			P.setAttribute('class',OldClass+' Cat_'+Cat);
 		}}
-	for(var i=0;i<CatagoryType.length;i++){
-		if(typeof(CompColor[CatagoryType[i]])==='undefined'){
-			CompColor[CatagoryType[i]]=rgbToHex(224, 134, 91);
-		}
-	}
+		
+
 	for (var key in CompColor) {
 		if(document.getElementById('Comp_'+key)===null){
 			var B=document.createElement('button');
@@ -435,14 +372,35 @@ function ColorMetabolites(){
 			CompColorPanel.appendChild(B);
 		}
 	}
-	//add button to save the new associated array to the description and color the nodes appropriately.
-	//Maybe also color segments???
-	//if segment touches a C node, in C compartment, change class of the "segment-group"  to Cat_C etc
 
-	ColorSegments();
+	//ColorSegments();
 
 }
 
+function CloseColors(){
+	//OtherOptionPanel.style.visibility='visible';
+	CompColorPanel.style.visibility='hidden';
+	
+	var Node_Color={};
+	
+	
+	
+	var MapNodes=BUILDER.map['nodes'];
+	var MapNodesNames=Object.keys(MapNodes);
+
+	
+	for(var i=0;i<MapNodesNames.length;i++){
+		if (MapNodes[MapNodesNames[i]]['node_type']=='metabolite'){
+			ID=MapNodes[MapNodesNames[i]]['bigg_id'];
+			Cat=ID.substr(ID.length-1);
+			Node_Color[MapNodesNames[i]]=[CompColor[Cat],MakeBorder(CompColor[Cat])];
+		}}
+	RenderNodeColors(Node_Color);
+	SaveAppend('Node_Color',Node_Color);
+	 
+}	
+
+//?????????????????????????????
 function ColorSegments(){
 	//var Segs=document.getElementsByClassName('segment');
 
@@ -498,16 +456,7 @@ function ChangeName(){
 		BUILDER.map['map_name']=name;
 	}
 }
-function ToggleButtons(){
-	if (ButtonSub.style.display=='none'){
-		BToggler.textContent='Hide Options';
-		ButtonSub.style.display='';
-	}
-	else{
-		ButtonSub.style.display='none';
-		BToggler.textContent='Expand Options';
-	}
-}
+
 function AddToCurrent(){
 	var ID= Clicked.id.split('_r')[1];
 	if(typeof(Extra[ID])!=='undefined'){
@@ -798,39 +747,7 @@ function MakeBorder(InColor){
 }
 
 
-function CloseColors(){
-	//OtherOptionPanel.style.visibility='visible';
-	CompColorPanel.style.visibility='hidden';
-	var OldDesc=BUILDER.map['map_description'].split('____****____')[1];
-	BUILDER.map['map_description']=JSON.stringify(CompColor)+'____****____'+OldDesc;
-	var PARENT=document.getElementsByTagName('defs')[0];
-	var OldStyle=document.getElementById('COLOR');
-	if(OldStyle!=null){
-		PARENT.removeChild(OldStyle);
-	}
-	var OldStyle=document.createElement("style");
-	OldStyle.id='COLOR';
-	var StyleString='';
-	
-	for (var key in CompColor) {
-		StyleString=StyleString+'svg.escher-svg .node-circle.Cat_'+key+' { fill:'+CompColor[key]+
-		'; stroke:'+MakeBorder(CompColor[key])+'}';
-		
-		if(SegsAlso.checked){
-		StyleString=StyleString+'svg.escher-svg .segment-group .Cat_'+key+' { stroke:'+CompColor[key]+
-		';}svg.escher-svg .segment-group .arrowhead.Cat_'+
-		key+' { stroke:'+CompColor[key]+'; fill:'+CompColor[key]+';}';
-		}
-	}
-	OldStyle.innerHTML=StyleString
-	PARENT.appendChild(OldStyle);
-	/*VV=$('.Cat_'+CatagoryID);
-for(var p=0;p<VV.length;p++){
-VV[p].setAttribute('style','fill:'+Color)
-}*/
-	//COLORS[Index]=Color; 
-	//$('#'+CatagoryID)[0].setAttribute('style','background-color:'+COLORS[Index]); 
-}	 
+ 
 function AddPole(){
 	OurBar.AddPole();
 	DrawCurrentBar(ColorContext);
@@ -1583,6 +1500,201 @@ Parent.appendChild(ROWNAMES);
 				}
 			}
 		}
+	}
+}
+
+function MakeLookRobotSelected(){
+	var NODEHTML=document.getElementsByClassName('node selected');
+	var NODES=[];
+	var REACTIONID=[];
+	var NODEID=[];
+	for (var n=0; n<NODEHTML.length; n++){
+		var ID = NODEHTML[n].id.substring(1);
+		NODEID.push(ID);
+		var NODE = BUILDER.map.nodes[ID];
+		NODES.push(NODE);
+		for(k=0;k<NODE.connected_segments.length;k++){
+			if (REACTIONID.indexOf(NODE.connected_segments[k].reaction_id)==-1){
+				REACTIONID.push(NODE.connected_segments[k].reaction_id);
+			}}}
+	var REACTIONS=[];
+	for(k=0;k<REACTIONID.length;k++){
+		REACTIONS.push(BUILDER.map.reactions[REACTIONID[k]]);
+	}
+	//console.log(NODES,REACTIONID,REACTIONS)
+	for(var i=0; i<REACTIONS.length;i++){
+		var S=REACTIONS[i].segments;
+		var Skeys=Object.keys(S);
+		for(var j=0;j<Skeys.length;j++){
+			CurrentSeg=S[Skeys[j]];
+			var FromID=NODEID.indexOf(CurrentSeg.from_node_id);
+			var ToID=NODEID.indexOf(CurrentSeg.to_node_id);
+			var FnodePos=[BUILDER.map.nodes[CurrentSeg.from_node_id].x,BUILDER.map.nodes[CurrentSeg.from_node_id].y];
+			var ToNodePos=[BUILDER.map.nodes[CurrentSeg.to_node_id].x,BUILDER.map.nodes[CurrentSeg.to_node_id].y];
+			var Xdist=FnodePos[0]-ToNodePos[0];
+			var Ydist=FnodePos[1]-ToNodePos[1];
+			var DIST=Math.sqrt(Xdist*Xdist +Ydist*Ydist);
+			//b1 is from, b2 is to?
+			if(FromID!=-1){ //make bevil dist 20 from fromnode point at tonode
+				if(CurrentSeg.b1!=null){
+					CurrentSeg.b1.x=FnodePos[0]-(40*Xdist)/DIST;
+					CurrentSeg.b1.y=FnodePos[1]-(40*Ydist)/DIST;
+				}
+			}
+			if(ToID!=-1){ //make bevil dist 20 from tonode point at fromnode
+				if(CurrentSeg.b2!=null){
+					CurrentSeg.b2.x=ToNodePos[0]+(40*Xdist)/DIST;
+					CurrentSeg.b2.y=ToNodePos[1]+(40*Ydist)/DIST;
+				}
+			}
+		}
+	}
+	//Go through reactions, go through segments, go through bevils, if the bevil is associated with a node in NODES then make it pretty. else leave it alone.
+	//get highlighted nodes
+	//figure out which reaction each node belongs to
+	//First pass, make bevils point straight at targets
+	BUILDER.map.draw_all_reactions();
+}
+
+function ChangeColor(Something){
+	//console.log(Something);
+	ColorPickerTwo.style.visibility='visible';
+	CColor=CompColor[Something.id.split('Comp_')[1]];
+	Pcontext=Pickertwo.getContext('2d');
+	Pickertwo.width=350;
+	Pickertwo.height=200;
+	Pcontext.fillStyle=rgbToHex(25,25,25);
+	Pcontext.fillRect(0,0,Pcontext.canvas.width,Pcontext.canvas.height);
+	//Thanks to http://seesparkbox.com/foundry/how_i_built_a_canvas_color_picker
+	var gradient = Pcontext.createLinearGradient(5,5,Pickertwo.width-80,5);
+	gradient.addColorStop(0,    "rgb(255,   0,   0)");
+	gradient.addColorStop(0.15, "rgb(255,   0, 255)");
+	gradient.addColorStop(0.33, "rgb(0,     0, 255)");
+	gradient.addColorStop(0.49, "rgb(0,   255, 255)");
+	gradient.addColorStop(0.67, "rgb(0,   255,   0)");
+	gradient.addColorStop(0.84, "rgb(255, 255,   0)");
+	gradient.addColorStop(1,    "rgb(255,   0,   0)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient = Pcontext.createLinearGradient(0, 5, 0, Pcontext.canvas.height-10);
+	gradient.addColorStop(0,   "rgba(255, 255, 255, 1)");
+	gradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
+	gradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
+	gradient.addColorStop(1,   "rgba(0,     0,   0, 1)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	Pcontext.fillStyle=rgbToHex(210,210,210);
+	Pcontext.fillRect(Pcontext.canvas.width-50,Pcontext.canvas.height-30,40,20);
+	Pcontext.fillStyle=rgbToHex(0,0,0);
+	Pcontext.font="8px sans-serif";
+	Pcontext.fillText('Confirm',Pcontext.canvas.width-50+5,Pcontext.canvas.height-30+10);
+	Pcontext.fillStyle=CColor;
+	Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient.addColorStop(0,    "rgb(0,   0,   0)");
+	gradient.addColorStop(.5,   CColor);
+	gradient.addColorStop(1,    "rgb(255,   255,   255)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+	PickDown=false;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	Pickertwo.addEventListener('mousedown', PMDT=function(evt) {
+		PickDown=true;
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+			var c = Pcontext.getImageData(x, y, 1, 1).data;
+			CColor=rgbToHex(c[0],c[1],c[2]);
+			Pcontext.fillStyle=CColor;
+			Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+		}
+		if((x>Pcontext.canvas.width-50)&&(x<Pcontext.canvas.width-50+40)&&(y>Pcontext.canvas.height-30)&&(y<Pcontext.canvas.height-30+20)){
+			ClosePickerTwo(Something,CColor);
+		}
+	});
+	Pickertwo.addEventListener('mousemove', PMMT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+				var c = Pcontext.getImageData(x, y, 1, 1).data;
+				CColor=rgbToHex(c[0],c[1],c[2]);
+				Pcontext.fillStyle=CColor;
+				Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+			}
+		}
+	});
+	Pickertwo.addEventListener('mouseleave', PMLT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			PickDown=false;
+			if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+			}
+			else if (x>Pcontext.canvas.width-60){
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}
+			else{
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}}});
+	Pickertwo.addEventListener('mouseup', PMUT=function(evt) {
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		PickDown=false;
+		if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+		}
+		else if (x>Pcontext.canvas.width-60){
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}
+		else{
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}});
+}
+
+function   ClosePickerTwo(Something,CColor){
+	CompColor[Something.id.split('Comp_')[1]]=CColor;
+	Something.setAttribute('style','background-color:'+CompColor[Something.id.split('Comp_')[1]]+';');
+	ColorPickerTwo.style.visibility='hidden';
+	Pickertwo.width=0;
+	Pickertwo.height=0;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
 	}
 }
 </script>
