@@ -110,11 +110,12 @@ BUILDER = escher.Builder(null, null, css, d3.select('#map_container'), options);
 <h3>Graph Options</h3>
 <div>
 <button onclick='ChangeName()'>Change map name</button>
-<button onclick='ColorMetabolites()'>Color metabolites by compartment</button>
-<button onclick=''>Color selected nodes</button>
-<button onclick=''>Color selected arrows</button>
-<button onclick='MakeLookRobotSelected()'>Make selected reactions look angular</button>
-<button onclick='ChangeReactionFontSize()'>Change selected reaction label font size</button>
+<button onclick='ColorMetabolitesComp()'>Color metabolites by compartment</button>
+<button onclick='SelectedNodeColorClicled()'>Color selected metabolites</button>
+<button onclick='SelectedSegmentsColorClicked()'>Color selected arrows</button>
+<button onclick='MakeLookRobotSelected()'>Make selected segments look angular</button>
+<button onclick='ChangeReactionFontSize()'>Change selected reaction's label font size</button>
+<button onclick='ResizeArrow()'>Resize selected arrows</button>
 <button id='NodesButton' onclick='ToggleNodes()'>Bigger Internal Nodes</button>
 </div>
 
@@ -135,12 +136,15 @@ BUILDER = escher.Builder(null, null, css, d3.select('#map_container'), options);
 <canvas id='Key' width=50px height=150px style='position:fixed;bottom:0;right:0;'></canvas>
 
 <div id='CompColorPanel' class='Pretty'  style=" visibility:hidden; position:fixed;">
-<button onclick='CloseColors()'>Confirm color choices</button>
+<button onclick='CompCloseColors()'>Confirm color choices</button>
 <button onclick='DefaultColors()'>Return to default colors</button>
+<button onclick='Cancel()'>Cancel</button>
 <input type="checkbox" style='display:inline;' id="SegsAlso", checked=true> Color Segments<br>
 <div id="ColorPickerTwo" style='visibility:hidden;'/>
 <canvas id='Pickertwo' width=0px height=0x/>
 </div>
+
+
 </div>
 
 
@@ -179,13 +183,13 @@ AddToHeat.disabled=true;
 
 function HideAll(){
 		ButtonSub.style.display='none';
-		BToggler.textContent='Expand Options';
+		BToggler.textContent='Open other options';
 		HeatmapPanel.style.display='none';
 		HeatmapButt.textContent='Add Heatmaps';
 }
 
 function ToggleButtons(){
-
+UpdateStylesheet();
 	if (ButtonSub.style.display=='none'){
 		HideAll();
 		BToggler.textContent='Hide Options';
@@ -197,7 +201,7 @@ function ToggleButtons(){
 }
 
 function ToggleHeatmaps(){
-
+UpdateStylesheet();
 	if (HeatmapPanel.style.display=='none'){
 		HideAll();
 		HeatmapButt.textContent='Hide Heatmap Options';
@@ -240,12 +244,14 @@ OldDesc=Temps[0];
 }
 
 BUILDER.map['map_description']=JSON.stringify(DatToSave)+'____****____'+OldDesc;
+UpdateStylesheet();
 }
 
 function SaveAppend(Name,Data){
 var Dat=LoadAuxData();
 Dat[Name]=Data;
 SaveAuxData(Dat);
+
 }
 
 function DeleteAttribute(Name){
@@ -255,15 +261,13 @@ SaveAuxData(Dat);
 }
 
 function LoadStyleStuff(){
-var Dat=LoadAuxData();
-if(Dat['Reaction_Fonts']!=null){
-RenderReactionFonts(Dat['Reaction_Fonts']);
-}
 
+UpdateStylesheet();
 }
 
 
-function RenderReactionFonts(AssocArray){
+function RenderReactionFonts(){
+AssocArray=LoadAuxData()['Reaction_Fonts'];
 for(n in AssocArray){
 var Rhtml=document.getElementById('r'+n);
 		Rhtml.childNodes[0].childNodes[1].style.fontSize=AssocArray[n];
@@ -271,14 +275,178 @@ var Rhtml=document.getElementById('r'+n);
 
 }
 
-function RenderNodeColors(AssocArray){
-for(n in AssocArray){
-var Rhtml=document.getElementById('n'+n);
-		Rhtml.childNodes[0].style.fill=AssocArray[n][0];
-		Rhtml.childNodes[0].style.stroke=AssocArray[n][1];
+function UpdateStylesheet(){
+	RenderNodeColors();
+	RenderNodeColors();
+	RenderArrowSizes();
+	RenderReactionFonts();
+	
+var PARENT=document.getElementsByTagName('defs')[0];
+var OldStyle=document.getElementById('NStyle');
+if(OldStyle==null){
+var OldStyle=document.createElement("style");
+OldStyle.id='NStyle';
+}
+StyleString='';
+
+//Load unique style elements for node color
+Ulist=[];
+AssocArray=LoadAuxData()['Node_Color']
+for (n in AssocArray){
+if (Ulist.indexOf("ColN_"+AssocArray[n][0])==-1){
+Ulist.push("ColN_"+AssocArray[n][0])
 }
 
 }
+//build style string for Node color
+for(I in Ulist){
+var Col=Ulist[I].split('ColN_')[1]
+StyleString+='svg.escher-svg .'+Ulist[I].replace('#','')+' > .node-circle {fill:'+Col+'; stroke:'+MakeBorder(Col)+';}';
+
+}
+
+
+//Load unique style elements for segment color
+
+Ulist=[];
+AssocArray=LoadAuxData()['Arrow_Color']
+for (n in AssocArray){
+if (Ulist.indexOf("ColS_"+AssocArray[n][0])==-1){
+Ulist.push("ColS_"+AssocArray[n][0])
+}
+}
+
+//build style string for segment color
+for(I in Ulist){
+var Col=Ulist[I].split('ColS_')[1]
+StyleString+='svg.escher-svg .'+Ulist[I].replace('#','')+' > .segment {stroke:'+Col+';}';
+StyleString+='svg.escher-svg .'+Ulist[I].replace('#','')+' > .arrowheads .arrowhead {stroke:'+Col+'; fill:'+Col+';}';
+}
+
+Ulist=[];
+AssocArray=LoadAuxData()['Arrow_Size']
+for (n in AssocArray){
+if (Ulist.indexOf("ColBig_"+AssocArray[n])==-1){
+Ulist.push("ColBig_"+AssocArray[n])
+}
+}
+
+//build style string for segment color
+for(I in Ulist){
+var Col=Ulist[I].split('ColBig_')[1]
+StyleString+='svg.escher-svg .'+Ulist[I]+' > .segment {stroke-width:'+Col+';}';
+StyleString+='svg.escher-svg .'+Ulist[I]+' > .arrowheads .arrowhead {stroke-width:'+Col+';}';
+}
+
+
+
+
+OldStyle.innerHTML=StyleString;
+PARENT.appendChild(OldStyle);
+}
+
+function DefaultColors(){
+	//OtherOptionPanel.style.visibility='visible';
+	CompColorPanel.style.visibility='hidden';
+	var OldNodeMap=LoadAuxData()['Node_Color'];
+	var OldSegMap=LoadAuxData()['Arrow_Color'];
+	if (OldNodeMap==null){
+	OldNodeMap={};
+	}
+		if (OldSegMap==null){
+	OldSegMap={};
+	}
+	DeleteAttribute("Node_Color");
+	DeleteAttribute("Arrow_Color");
+	
+	for(n in OldNodeMap){
+	//n is node id
+	var Node=document.getElementById('n'+n);
+	OldClass=Node.getAttribute('class');
+	OldClass=OldClass.replace(/ColN_.*/,'');
+	Node.setAttribute('class',OldClass);
+	}
+	for(n in OldSegMap){
+	//n is node id
+	var Node=document.getElementById(n);
+	OldClass=Node.getAttribute('class');
+	OldClass=OldClass.replace(/ColS_.*/,'');
+	Node.setAttribute('class',OldClass);
+	}
+	
+	ColorMetabolitesComp();
+
+}
+
+function RenderNodeColors(){
+AssocArray=LoadAuxData()['Node_Color'];
+
+for(n in AssocArray){
+
+var Rhtml=document.getElementById('n'+n);
+
+OldClass=Rhtml.getAttribute('class');
+OldClass=OldClass.replace(/ColN_.* /,'');
+Rhtml.setAttribute('class',OldClass+' ColN_'+AssocArray[n][0].replace('#',''));
+}
+//UpdateStylesheet();
+
+}
+
+function RenderArrowSizes(){
+AssocArray=LoadAuxData()['Arrow_Size'];
+for(n in AssocArray){
+var Rhtml=document.getElementById(n);
+OldClass=Rhtml.getAttribute('class');
+OldClass=OldClass.replace(/ColBig_.* /,'');
+Rhtml.setAttribute('class',OldClass+' ColBig_'+AssocArray[n]);
+}
+
+}
+
+
+function RenderArrowColors(){
+AssocArray=LoadAuxData()['Arrow_Color'];
+
+for(n in AssocArray){
+var Rhtml=document.getElementById(n);
+OldClass=Rhtml.getAttribute('class');
+OldClass=OldClass.replace(/ColS_.* /,'');
+Rhtml.setAttribute('class',OldClass+' ColS_'+AssocArray[n][0].replace('#',''));
+}
+//UpdateStylesheet();
+
+
+}
+
+
+
+function SelectedNodeColorClicled(){
+//Get selected nodes as list
+//if any selected open color picker 2 or 3 or whatever
+//when color picked, color selected nodes by RenderNodeColors, Update node colors in the store
+//Then update the stylesheet
+var NODEHTML=document.getElementsByClassName('node selected');
+var RealID=[];
+for(var i=0 ; i<NODEHTML.length;i++){
+var Class = NODEHTML[i].childNodes[0].className.baseVal;
+if(Class.indexOf('metabolite-circle')!=-1){
+RealID.push(NODEHTML[i].id);
+}
+
+
+} 
+
+if(RealID.length>0){
+OpenSelNodeColorPicker(RealID);
+}
+
+
+}
+
+
+
+
 
 function ChangeReactionFontSize(){
 	var fontsize= prompt('Set font size for selected reactions','30px');
@@ -303,7 +471,7 @@ function ChangeReactionFontSize(){
 	OldFonts[REACTIONID[n]]=fontsize;
 	}
 	SaveAppend('Reaction_Fonts',OldFonts);
-	RenderReactionFonts(OldFonts);
+	RenderReactionFonts();
 	
 	/*
 	for(var n=0;n<REACTIONID.length;n++){
@@ -325,25 +493,10 @@ function ChangeReactionFontSize(){
 }
 
 
-function DefaultColors(){
-	//OtherOptionPanel.style.visibility='visible';
-	CompColorPanel.style.visibility='hidden';
-	var OldColorMap=LoadAuxData()['Node_Color'];
-	if (OldColorMap==null){
-	OldColorMap={};
-	}
-	DeleteAttribute("Node_Color");
-	for(n in OldColorMap){
-	//n is node id
-	var Node=document.getElementById('n'+n);
-		Node.childNodes[0].style.fill=null;
-		Node.childNodes[0].style.stroke=null;
-	}
-
-}
 
 
-function ColorMetabolites(){
+
+function ColorMetabolitesComp(){
 	CompColorPanel.style.visibility='visible';
 
 	var MapNodes=BUILDER.map['nodes'];
@@ -371,13 +524,23 @@ function ColorMetabolites(){
 			B.textContent=key;
 			CompColorPanel.appendChild(B);
 		}
+		else{
+			var B=document.getElementById('Comp_'+key);
+			B.setAttribute('style','background-color:'+CompColor[key]+';');
+
+
+		}
 	}
 
 	//ColorSegments();
 
 }
+function Cancel(){
+CompColorPanel.style.visibility='hidden';
 
-function CloseColors(){
+}
+
+function CompCloseColors(){
 	//OtherOptionPanel.style.visibility='visible';
 	CompColorPanel.style.visibility='hidden';
 	
@@ -395,19 +558,90 @@ function CloseColors(){
 			Cat=ID.substr(ID.length-1);
 			Node_Color[MapNodesNames[i]]=[CompColor[Cat],MakeBorder(CompColor[Cat])];
 		}}
-	RenderNodeColors(Node_Color);
+		
 	SaveAppend('Node_Color',Node_Color);
+
+	
+	if(SegsAlso.checked){
+		ColorSegments(CompColor);
+	}
 	 
 }	
 
+
+
+function CloseSelectPicker(NodeIds,Color){
+	ColorPickerTwo.style.visibility='hidden';
+	Pickertwo.width=0;
+	Pickertwo.height=0;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	var OldNodes=LoadAuxData()['Node_Color'];
+	if(OldNodes==null){
+	OldNodes={};
+	}
+	
+	for(N in NodeIds){
+	OldNodes[NodeIds[N].substr(1)]=[Color,MakeBorder(Color)];
+	}
+	
+	SaveAppend('Node_Color',OldNodes);
+
+}
+
 //?????????????????????????????
-function ColorSegments(){
+function ApplySegSize(SegID,size){
+var OldNodes=LoadAuxData()['Arrow_Size'];
+if(OldNodes==null){
+	OldNodes={};
+	}
+	for(N in SegID){
+	OldNodes[SegID[N]]=size;
+	}
+
+	SaveAppend('Arrow_Size',OldNodes);
+	
+
+}
+
+
+function CloseSegSelectPicker(SegIds,Color){
+ColorPickerTwo.style.visibility='hidden';
+	Pickertwo.width=0;
+	Pickertwo.height=0;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	var OldNodes=LoadAuxData()['Arrow_Color'];
+	if(OldNodes==null){
+	OldNodes={};
+	}
+	for(N in SegIds){
+	OldNodes[SegIds[N]]=[Color,MakeBorder(Color)];
+	}
+	
+	SaveAppend('Arrow_Color',OldNodes);
+	RenderArrowColors(OldNodes);
+
+}
+
+function ColorSegments(CompColor){
 	//var Segs=document.getElementsByClassName('segment');
 
 	var MapReactions=BUILDER.map['reactions'];
 	var RKeys=Object.keys(MapReactions);
-
-
+	var MapNodes=BUILDER.map['nodes'];
+	var MapNodesNames=Object.keys(MapNodes);
+	
+	
+	var Arrow_Color={};
 	for (var i=0;i<RKeys.length;i++){
 		Reaction=MapReactions[RKeys[i]];
 
@@ -417,36 +651,74 @@ function ColorSegments(){
 
 			var Segment=Segs[Skeys[j]];
 			var SID='s'+Segment['segment_id'];
-			var N1=document.getElementById('n'+Segment['to_node_id']).childNodes[0].getAttribute('class');
-			var N2=document.getElementById('n'+Segment['from_node_id']).childNodes[0].getAttribute('class');
-
-			PP=document.getElementById('n'+Segment['to_node_id']);
-			var NewClass=''
-			if(N1.indexOf('Cat_')!=-1){
-				NewClass=N1[N1.indexOf('Cat_')+4];
-
+			var ShortList=[Segment['to_node_id'],Segment['from_node_id']]
+			for(var k=0; k<ShortList.length;k++){
+			if(MapNodes[ShortList[k]]['node_type']=='metabolite'){
+				ID=MapNodes[ShortList[k]]['bigg_id'];
+				Cat=ID.substr(ID.length-1);
+				Arrow_Color[SID]=[CompColor[Cat],MakeBorder(CompColor[Cat])];
+				
 			}
-			else if (N2.indexOf('Cat_')!=-1){
-				NewClass=N2[N2.indexOf('Cat_')+4];
 			}
 
-			var ChangeMent=document.getElementById(SID).childNodes[0]; //Segment
-			var ChangeArrow=document.getElementById(SID).childNodes[1].childNodes[0]; //Arrow
-
-			var OC=ChangeMent.getAttribute('class');
-
-			if(OC.indexOf('Cat_')==-1){
-				ChangeMent.setAttribute('class',OC+" Cat_"+NewClass);
-				if(typeof(ChangeArrow)!=='undefined'){
-					var OD=ChangeArrow.getAttribute('class');
-					ChangeArrow.setAttribute('class',OD+" Cat_"+NewClass);
-				}
 			}
-
 
 		}
 
-	}
+	
+	SaveAppend('Arrow_Color',Arrow_Color);
+	RenderArrowColors(Arrow_Color);
+		
+		
+}
+
+function GetSegs(){
+var NODEHTML=document.getElementsByClassName('node selected');
+var IDLIST=[];
+for(n=0; n<NODEHTML.length;n++){
+IDLIST.push(NODEHTML[n].id.substr(1))
+}
+//Need to ge the list of segments which are selected by returning the segments which have both nodes selected
+var SegID=[];
+	var MapReactions=BUILDER.map['reactions'];
+	var RKeys=Object.keys(MapReactions);
+	
+	for (var i=0;i<RKeys.length;i++){
+		Reaction=MapReactions[RKeys[i]];
+		var Segs=Reaction['segments'];
+		var Skeys=Object.keys(Segs);
+		for(var j=0;j<Skeys.length;j++){
+		var Segment=Segs[Skeys[j]];
+		var SID='s'+Segment['segment_id'];
+		if(IDLIST.indexOf(Segment['to_node_id'])!=-1 && IDLIST.indexOf(Segment['from_node_id'])!=-1){
+		SegID.push(SID);
+		}
+		
+		}
+		}
+		return SegID
+}
+function SelectedSegmentsColorClicked(){
+var SegID=GetSegs();
+
+if(SegID.length>0){
+OpenSelSegColorPicker(SegID);
+}
+
+}
+
+function ResizeArrow(){
+var SegID=GetSegs();
+
+if(SegID.length>0){
+var size=prompt("Input new arrow size (default is 10)",10);
+if(size!=null){
+ApplySegSize(SegID,size);
+
+}
+}
+
+
 }
 
 function ChangeName(){
@@ -1555,6 +1827,264 @@ function MakeLookRobotSelected(){
 	//First pass, make bevils point straight at targets
 	BUILDER.map.draw_all_reactions();
 }
+
+
+function OpenSelSegColorPicker(NODEIDLIST){
+
+	ColorPickerTwo.style.visibility='visible';
+	CColor='black';
+	Pcontext=Pickertwo.getContext('2d');
+	Pickertwo.width=350;
+	Pickertwo.height=200;
+	Pcontext.fillStyle=rgbToHex(25,25,25);
+	Pcontext.fillRect(0,0,Pcontext.canvas.width,Pcontext.canvas.height);
+	//Thanks to http://seesparkbox.com/foundry/how_i_built_a_canvas_color_picker
+	var gradient = Pcontext.createLinearGradient(5,5,Pickertwo.width-80,5);
+	gradient.addColorStop(0,    "rgb(255,   0,   0)");
+	gradient.addColorStop(0.15, "rgb(255,   0, 255)");
+	gradient.addColorStop(0.33, "rgb(0,     0, 255)");
+	gradient.addColorStop(0.49, "rgb(0,   255, 255)");
+	gradient.addColorStop(0.67, "rgb(0,   255,   0)");
+	gradient.addColorStop(0.84, "rgb(255, 255,   0)");
+	gradient.addColorStop(1,    "rgb(255,   0,   0)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient = Pcontext.createLinearGradient(0, 5, 0, Pcontext.canvas.height-10);
+	gradient.addColorStop(0,   "rgba(255, 255, 255, 1)");
+	gradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
+	gradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
+	gradient.addColorStop(1,   "rgba(0,     0,   0, 1)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	Pcontext.fillStyle=rgbToHex(210,210,210);
+	Pcontext.fillRect(Pcontext.canvas.width-50,Pcontext.canvas.height-30,40,20);
+	Pcontext.fillStyle=rgbToHex(0,0,0);
+	Pcontext.font="8px sans-serif";
+	Pcontext.fillText('Confirm',Pcontext.canvas.width-50+5,Pcontext.canvas.height-30+10);
+	Pcontext.fillStyle=CColor;
+	Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient.addColorStop(0,    "rgb(0,   0,   0)");
+	gradient.addColorStop(.5,   CColor);
+	gradient.addColorStop(1,    "rgb(255,   255,   255)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+	PickDown=false;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	Pickertwo.addEventListener('mousedown', PMDT=function(evt) {
+		PickDown=true;
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+			var c = Pcontext.getImageData(x, y, 1, 1).data;
+			CColor=rgbToHex(c[0],c[1],c[2]);
+			Pcontext.fillStyle=CColor;
+			Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+		}
+		if((x>Pcontext.canvas.width-50)&&(x<Pcontext.canvas.width-50+40)&&(y>Pcontext.canvas.height-30)&&(y<Pcontext.canvas.height-30+20)){
+			CloseSegSelectPicker(NODEIDLIST,CColor);
+		}
+	});
+	Pickertwo.addEventListener('mousemove', PMMT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+				var c = Pcontext.getImageData(x, y, 1, 1).data;
+				CColor=rgbToHex(c[0],c[1],c[2]);
+				Pcontext.fillStyle=CColor;
+				Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+			}
+		}
+	});
+	Pickertwo.addEventListener('mouseleave', PMLT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			PickDown=false;
+			if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+			}
+			else if (x>Pcontext.canvas.width-60){
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}
+			else{
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}}});
+	Pickertwo.addEventListener('mouseup', PMUT=function(evt) {
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		PickDown=false;
+		if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+		}
+		else if (x>Pcontext.canvas.width-60){
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}
+		else{
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}});
+}
+function OpenSelNodeColorPicker(NODEIDLIST){
+
+	ColorPickerTwo.style.visibility='visible';
+	CColor='black';
+	Pcontext=Pickertwo.getContext('2d');
+	Pickertwo.width=350;
+	Pickertwo.height=200;
+	Pcontext.fillStyle=rgbToHex(25,25,25);
+	Pcontext.fillRect(0,0,Pcontext.canvas.width,Pcontext.canvas.height);
+	//Thanks to http://seesparkbox.com/foundry/how_i_built_a_canvas_color_picker
+	var gradient = Pcontext.createLinearGradient(5,5,Pickertwo.width-80,5);
+	gradient.addColorStop(0,    "rgb(255,   0,   0)");
+	gradient.addColorStop(0.15, "rgb(255,   0, 255)");
+	gradient.addColorStop(0.33, "rgb(0,     0, 255)");
+	gradient.addColorStop(0.49, "rgb(0,   255, 255)");
+	gradient.addColorStop(0.67, "rgb(0,   255,   0)");
+	gradient.addColorStop(0.84, "rgb(255, 255,   0)");
+	gradient.addColorStop(1,    "rgb(255,   0,   0)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient = Pcontext.createLinearGradient(0, 5, 0, Pcontext.canvas.height-10);
+	gradient.addColorStop(0,   "rgba(255, 255, 255, 1)");
+	gradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
+	gradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
+	gradient.addColorStop(1,   "rgba(0,     0,   0, 1)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	Pcontext.fillStyle=rgbToHex(210,210,210);
+	Pcontext.fillRect(Pcontext.canvas.width-50,Pcontext.canvas.height-30,40,20);
+	Pcontext.fillStyle=rgbToHex(0,0,0);
+	Pcontext.font="8px sans-serif";
+	Pcontext.fillText('Confirm',Pcontext.canvas.width-50+5,Pcontext.canvas.height-30+10);
+	Pcontext.fillStyle=CColor;
+	Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient.addColorStop(0,    "rgb(0,   0,   0)");
+	gradient.addColorStop(.5,   CColor);
+	gradient.addColorStop(1,    "rgb(255,   255,   255)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+	PickDown=false;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	Pickertwo.addEventListener('mousedown', PMDT=function(evt) {
+		PickDown=true;
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+			var c = Pcontext.getImageData(x, y, 1, 1).data;
+			CColor=rgbToHex(c[0],c[1],c[2]);
+			Pcontext.fillStyle=CColor;
+			Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+		}
+		if((x>Pcontext.canvas.width-50)&&(x<Pcontext.canvas.width-50+40)&&(y>Pcontext.canvas.height-30)&&(y<Pcontext.canvas.height-30+20)){
+			CloseSelectPicker(NODEIDLIST,CColor);
+		}
+	});
+	Pickertwo.addEventListener('mousemove', PMMT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+				var c = Pcontext.getImageData(x, y, 1, 1).data;
+				CColor=rgbToHex(c[0],c[1],c[2]);
+				Pcontext.fillStyle=CColor;
+				Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+			}
+		}
+	});
+	Pickertwo.addEventListener('mouseleave', PMLT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			PickDown=false;
+			if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+			}
+			else if (x>Pcontext.canvas.width-60){
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}
+			else{
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}}});
+	Pickertwo.addEventListener('mouseup', PMUT=function(evt) {
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		PickDown=false;
+		if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+		}
+		else if (x>Pcontext.canvas.width-60){
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}
+		else{
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}});
+}
+
+
 
 function ChangeColor(Something){
 	//console.log(Something);
