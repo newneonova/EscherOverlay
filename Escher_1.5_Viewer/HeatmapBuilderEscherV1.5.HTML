@@ -110,13 +110,23 @@ BUILDER = escher.Builder(null, null, css, d3.select('#map_container'), options);
 <h3>Graph Options</h3>
 <div>
 <button onclick='ChangeName()'>Change map name</button>
+<button id='NodesButton' onclick='ToggleNodes()'>Bigger Internal Nodes</button>
+<h5>Nodes</h5>
 <button onclick='ColorMetabolitesComp()'>Color metabolites by compartment</button>
 <button onclick='SelectedNodeColorClicled()'>Color selected metabolites</button>
+<h5>Arrows</h5>
 <button onclick='SelectedSegmentsColorClicked()'>Color selected arrows</button>
-<button onclick='MakeLookRobotSelected()'>Make selected segments look angular</button>
-<button onclick='ChangeReactionFontSize()'>Change selected reaction's label font size</button>
 <button onclick='ResizeArrow()'>Resize selected arrows</button>
-<button id='NodesButton' onclick='ToggleNodes()'>Bigger Internal Nodes</button>
+<button onclick='MakeLookRobotSelected()'>Make selected segments look angular</button>
+<h5>Text</h5>
+<button onclick='ChangeReactionFontSize()'>Change selected node's label font size</button>
+<button onclick='ChangeReactionColor()'>Change selected node's label color</button>
+
+
+
+
+
+
 </div>
 
 
@@ -266,20 +276,14 @@ UpdateStylesheet();
 }
 
 
-function RenderReactionFonts(){
-AssocArray=LoadAuxData()['Reaction_Fonts'];
-for(n in AssocArray){
-var Rhtml=document.getElementById('r'+n);
-		Rhtml.childNodes[0].childNodes[1].style.fontSize=AssocArray[n];
-}
 
-}
 
 function UpdateStylesheet(){
 	RenderNodeColors();
-	RenderNodeColors();
+	RenderArrowColors();
 	RenderArrowSizes();
 	RenderReactionFonts();
+	RenderReactionFontColors();
 	
 var PARENT=document.getElementsByTagName('defs')[0];
 var OldStyle=document.getElementById('NStyle');
@@ -336,6 +340,36 @@ for(I in Ulist){
 var Col=Ulist[I].split('ColBig_')[1]
 StyleString+='svg.escher-svg .'+Ulist[I]+' > .segment {stroke-width:'+Col+';}';
 StyleString+='svg.escher-svg .'+Ulist[I]+' > .arrowheads .arrowhead {stroke-width:'+Col+';}';
+}
+
+Ulist=[];
+AssocArray=LoadAuxData()['Reaction_Fonts']
+for (n in AssocArray){
+if (Ulist.indexOf("FonL_"+AssocArray[n])==-1){
+Ulist.push("FonL_"+AssocArray[n])
+}
+}
+
+//build style string for fonts
+for(I in Ulist){
+var Col=Ulist[I].split('FonL_')[1]
+StyleString+='svg.escher-svg .'+Ulist[I]+' .label {font-size:'+Col+';}';
+
+}
+
+Ulist=[];
+AssocArray=LoadAuxData()['Font_Color']
+for (n in AssocArray){
+if (Ulist.indexOf("FonC_"+AssocArray[n])==-1){
+Ulist.push("FonC_"+AssocArray[n])
+}
+}
+
+//build style string for font color
+for(I in Ulist){
+var Col=Ulist[I].split('FonC_')[1]
+StyleString+='svg.escher-svg .'+Ulist[I].replace('#','')+' .label {fill:'+Col+';}';
+
 }
 
 
@@ -446,32 +480,113 @@ OpenSelNodeColorPicker(RealID);
 
 
 
+function RenderReactionFonts(){
+AssocArray=LoadAuxData()['Reaction_Fonts'];
+for(n in AssocArray){
 
+var Rhtml=document.getElementById(n);
 
+OldClass=Rhtml.getAttribute('class');
+OldClass=OldClass.replace(/FonL_.* /,'');
+Rhtml.setAttribute('class',OldClass+' FonL_'+AssocArray[n]);
+
+}
+
+}
+
+function RenderReactionFontColors(){
+AssocArray=LoadAuxData()['Font_Color'];
+for(n in AssocArray){
+
+var Rhtml=document.getElementById(n);
+
+OldClass=Rhtml.getAttribute('class');
+OldClass=OldClass.replace(/FonC_.* /,'');
+Rhtml.setAttribute('class',OldClass+' FonC_'+AssocArray[n].replace('#',''));
+
+}
+
+}
+
+function ChangeReactionColor(){
+OpenReactionColorer();
+
+}
+function CloseFontColorPicker(Color){
+ColorPickerTwo.style.visibility='hidden';
+	Pickertwo.width=0;
+	Pickertwo.height=0;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	var NODEHTML=document.getElementsByClassName('node selected');
+	var REACTIONID=[];
+	for (var n=0; n<NODEHTML.length; n++){
+		if(NODEHTML[n].childNodes[0].className.baseVal.indexOf('metabolite-circle')!=-1){
+		REACTIONID.push(NODEHTML[n].id)
+		}
+		else if(NODEHTML[n].childNodes[0].className.baseVal.indexOf('midmarker-circle')!=-1){
+		var ID = NODEHTML[n].id.substring(1);
+		var NODE = BUILDER.map.nodes[ID];
+		REACTIONID.push('r'+NODE.connected_segments[0].reaction_id);
+		}
+		}
+	var OLabs=document.getElementsByClassName('text-label selected');
+		for (var n=0; n<OLabs.length; n++){
+		REACTIONID.push(OLabs[n].id);
+		}
+		
+		
+	
+	var OldFonts=LoadAuxData()['Font_Color'];
+	if (OldFonts==null){
+	OldFonts={};
+	}
+	for(var n=0;n<REACTIONID.length;n++){
+	OldFonts[REACTIONID[n]]=Color; //is an associateive array, element ID and font size
+	}
+	SaveAppend('Font_Color',OldFonts);
+
+}
 function ChangeReactionFontSize(){
-	var fontsize= prompt('Set font size for selected reactions','30px');
+//Changes the font size of any selected node's label
+//for metabolites the label is stored with the metabolite
+//for reactions, the label is stored in the reaction-label-group for the reaction
+//WIll do it by class and stylesheet modificaiton
+	var fontsize= prompt('Set font size for selected nodes','30px');
 	if (fontsize.indexOf('px')==-1){
 		fontsize=fontsize+'px';
 	}
 	var NODEHTML=document.getElementsByClassName('node selected');
 	var REACTIONID=[];
 	for (var n=0; n<NODEHTML.length; n++){
+		if(NODEHTML[n].childNodes[0].className.baseVal.indexOf('metabolite-circle')!=-1){
+		REACTIONID.push(NODEHTML[n].id)
+		}
+		else if(NODEHTML[n].childNodes[0].className.baseVal.indexOf('midmarker-circle')!=-1){
 		var ID = NODEHTML[n].id.substring(1);
 		var NODE = BUILDER.map.nodes[ID];
-		for(k=0;k<NODE.connected_segments.length;k++){
-			if (REACTIONID.indexOf(NODE.connected_segments[k].reaction_id)==-1){
-				REACTIONID.push(NODE.connected_segments[k].reaction_id);
-			}}}
+		REACTIONID.push('r'+NODE.connected_segments[0].reaction_id);
+		}
+		}
+		var OLabs=document.getElementsByClassName('text-label selected');
+		for (var n=0; n<OLabs.length; n++){
+		REACTIONID.push(OLabs[n].id);
+		}
+		
 	
 	var OldFonts=LoadAuxData()['Reaction_Fonts'];
 	if (OldFonts==null){
 	OldFonts={};
 	}
 	for(var n=0;n<REACTIONID.length;n++){
-	OldFonts[REACTIONID[n]]=fontsize;
+	OldFonts[REACTIONID[n]]=fontsize; //is an associateive array, element ID and font size
 	}
 	SaveAppend('Reaction_Fonts',OldFonts);
-	RenderReactionFonts();
+	//RenderReactionFonts();
 	
 	/*
 	for(var n=0;n<REACTIONID.length;n++){
@@ -1956,6 +2071,137 @@ function OpenSelSegColorPicker(NODEIDLIST){
 			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
 		}});
 }
+
+function OpenReactionColorer(){
+
+	ColorPickerTwo.style.visibility='visible';
+	CColor='black';
+	Pcontext=Pickertwo.getContext('2d');
+	Pickertwo.width=350;
+	Pickertwo.height=200;
+	Pcontext.fillStyle=rgbToHex(25,25,25);
+	Pcontext.fillRect(0,0,Pcontext.canvas.width,Pcontext.canvas.height);
+	//Thanks to http://seesparkbox.com/foundry/how_i_built_a_canvas_color_picker
+	var gradient = Pcontext.createLinearGradient(5,5,Pickertwo.width-80,5);
+	gradient.addColorStop(0,    "rgb(255,   0,   0)");
+	gradient.addColorStop(0.15, "rgb(255,   0, 255)");
+	gradient.addColorStop(0.33, "rgb(0,     0, 255)");
+	gradient.addColorStop(0.49, "rgb(0,   255, 255)");
+	gradient.addColorStop(0.67, "rgb(0,   255,   0)");
+	gradient.addColorStop(0.84, "rgb(255, 255,   0)");
+	gradient.addColorStop(1,    "rgb(255,   0,   0)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient = Pcontext.createLinearGradient(0, 5, 0, Pcontext.canvas.height-10);
+	gradient.addColorStop(0,   "rgba(255, 255, 255, 1)");
+	gradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
+	gradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
+	gradient.addColorStop(1,   "rgba(0,     0,   0, 1)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	Pcontext.fillStyle=rgbToHex(210,210,210);
+	Pcontext.fillRect(Pcontext.canvas.width-50,Pcontext.canvas.height-30,40,20);
+	Pcontext.fillStyle=rgbToHex(0,0,0);
+	Pcontext.font="8px sans-serif";
+	Pcontext.fillText('Confirm',Pcontext.canvas.width-50+5,Pcontext.canvas.height-30+10);
+	Pcontext.fillStyle=CColor;
+	Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient.addColorStop(0,    "rgb(0,   0,   0)");
+	gradient.addColorStop(.5,   CColor);
+	gradient.addColorStop(1,    "rgb(255,   255,   255)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+	PickDown=false;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	Pickertwo.addEventListener('mousedown', PMDT=function(evt) {
+		PickDown=true;
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+			var c = Pcontext.getImageData(x, y, 1, 1).data;
+			CColor=rgbToHex(c[0],c[1],c[2]);
+			Pcontext.fillStyle=CColor;
+			Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+		}
+		if((x>Pcontext.canvas.width-50)&&(x<Pcontext.canvas.width-50+40)&&(y>Pcontext.canvas.height-30)&&(y<Pcontext.canvas.height-30+20)){
+			CloseFontColorPicker(CColor);
+		}
+	});
+	Pickertwo.addEventListener('mousemove', PMMT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+				var c = Pcontext.getImageData(x, y, 1, 1).data;
+				CColor=rgbToHex(c[0],c[1],c[2]);
+				Pcontext.fillStyle=CColor;
+				Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+			}
+		}
+	});
+	Pickertwo.addEventListener('mouseleave', PMLT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			PickDown=false;
+			if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+			}
+			else if (x>Pcontext.canvas.width-60){
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}
+			else{
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}}});
+	Pickertwo.addEventListener('mouseup', PMUT=function(evt) {
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		PickDown=false;
+		if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+		}
+		else if (x>Pcontext.canvas.width-60){
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}
+		else{
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}});
+
+}
+
+
 function OpenSelNodeColorPicker(NODEIDLIST){
 
 	ColorPickerTwo.style.visibility='visible';
