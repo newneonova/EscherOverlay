@@ -54,6 +54,11 @@ background: -webkit-linear-gradient(rgba(200,150,100,.5),rgba(200,200,100,.8));
 background:    -moz-linear-gradient(rgba(200,150,100,.5),rgba(200,200,100,.8));
 background:         linear-gradient(rgba(200,150,100,.5),rgba(200,200,100,.8));
 }
+
+.ClickActive{
+background-color: blue;
+color: cyan;
+}
 </style>
 <script>
 css='@charset "utf-8";svg.escher-svg #mouse-node {  fill: none;}svg.escher-svg #canvas {  stroke: #ccc;  stroke-width: 7px;  fill: white;}svg.escher-svg .resize-rect {  fill: black;  opacity: 0;  stroke: none;}svg.escher-svg .label {  font-family: sans-serif;  font-style: italic;  font-weight: bold;  font-size: 8px;  fill: black;  stroke: none;  text-rendering: optimizelegibility;  cursor: default;}svg.escher-svg .reaction-label {  font-size: 30px;  fill: rgb(32, 32, 120);  text-rendering: optimizelegibility;}svg.escher-svg .node-label {  font-size: 20px;}svg.escher-svg .gene-label {  font-size: 18px;  fill: rgb(32, 32, 120);  text-rendering: optimizelegibility;  cursor: default;}svg.escher-svg .text-label .label {  font-size: 50px;}svg.escher-svg .text-label-input {  font-size: 50px;}svg.escher-svg .node-circle {  stroke-width: 2px;}svg.escher-svg .midmarker-circle, svg.escher-svg .multimarker-circle {  fill: white;  fill-opacity: 0.2;  stroke: rgb(50, 50, 50);}svg.escher-svg g.selected .node-circle{  stroke-width: 6px;  stroke: rgb(20, 113, 199);}svg.escher-svg g.selected .label {  fill: rgb(20, 113, 199);}svg.escher-svg .metabolite-circle {  stroke: rgb(162, 69, 16);  fill: rgb(224, 134, 91);}svg.escher-svg g.selected .metabolite-circle {  stroke: rgb(5, 2, 0);}svg.escher-svg .segment {  stroke: #334E75;  stroke-width: 10px;  fill: none;}svg.escher-svg .arrowhead {  fill: #334E75;}svg.escher-svg .stoichiometry-label-rect {  fill: white;  opacity: 0.5;}svg.escher-svg .stoichiometry-label {  fill: #334E75;  font-size: 17px;}svg.escher-svg .membrane {  fill: none;  stroke: rgb(255, 187, 0);}svg.escher-svg .brush .extent {  fill-opacity: 0.1;  fill: black;  stroke: #fff;  shape-rendering: crispEdges;}svg.escher-svg #brush-container .background {  fill: none;}svg.escher-svg .bezier-circle {  fill: rgb(255,255,255);}svg.escher-svg .bezier-circle.b1 {  stroke: red;}svg.escher-svg .bezier-circle.b2 {  stroke: blue;}svg.escher-svg .connect-line{  stroke: rgb(200,200,200);}svg.escher-svg .direction-arrow {  stroke: black;  stroke-width: 1px;  fill: white;  opacity: 0.3;}svg.escher-svg .start-reaction-cursor {  cursor: pointer;}svg.escher-svg .start-reaction-target {  stroke: rgb(100,100,100);  fill: none;  opacity: 0.5;}svg.escher-svg .rotation-center-line {  stroke: red;  stroke-width: 5px;}svg.escher-svg .highlight {  fill: #D97000;  text-decoration: underline;}svg.escher-svg .cursor-grab {  cursor: grab;  cursor: -webkit-grab;}svg.escher-svg .cursor-grabbing {  cursor: grabbing;  cursor: -webkit-grabbing;}svg.escher-svg .edit-text-cursor {  cursor: text;}';
@@ -121,8 +126,10 @@ BUILDER = escher.Builder(null, null, css, d3.select('#map_container'), options);
 <h5>Text</h5>
 <button onclick='ChangeReactionFontSize()'>Change selected node's label font size</button>
 <button onclick='ChangeReactionColor()'>Change selected node's label color</button>
-
-
+<h5>Drawings</h5>
+<button id='AddLineBut' onclick='AddLine()'>Add one vertical line on click</button>
+<button id='AddLineButHor' onclick='AddHLine()'>Add one horizontal line on click</button>
+<!--button id='AddSeg' onclick='AddLineSeg()'>Add a line segment with two clicks</button-->
 
 
 
@@ -191,6 +198,19 @@ SomethingIsHighlighted=false;
 AddToHeat.disabled=true;
 //**GLOBAL VARIABLES**
 
+
+$('html').keyup(function(e){
+    if(e.keyCode == 46) {
+        var OldSelect=document.getElementsByClassName("ANNoLine selected")[0];
+		if(OldSelect!=null){
+		OldSelect.parentNode.removeChild(OldSelect);
+		SavePresentLines();
+		}
+    }
+});
+
+
+
 function HideAll(){
 		ButtonSub.style.display='none';
 		BToggler.textContent='Open other options';
@@ -222,6 +242,215 @@ UpdateStylesheet();
 	}
 
 }
+
+
+function StopAddHLine(){
+AddLineButHor.className='';
+Zoom=document.getElementsByClassName('zoom-g')[0];
+Zoom.removeEventListener('mousedown', HlineClick);
+}
+
+
+function OnlySelectThisAnno(LINE){
+
+var OldSelect=document.getElementsByClassName("ANNoLine selected")[0];
+if(OldSelect!=null){
+OldSelect.setAttribute('class',"ANNoLine");
+}
+LINE.setAttribute('class',"ANNoLine selected");
+}
+
+function SavePresentLines(){
+var StoredLines = [];
+var OldLines=document.getElementsByClassName('ANNoLine');
+if(OldLines.length>0){
+
+for(n=0;n< OldLines.length;n++){
+var L=OldLines[n];
+
+StoredLines.push({'x1':L.getAttribute('x1'),'x2':L.getAttribute('x2'),'y1':L.getAttribute('y1'),'y2':L.getAttribute('y2')})
+
+
+}
+}
+
+SaveAppend('Stored_Lines',StoredLines)
+
+}
+function AddStoredLine(){
+var StoredLines = LoadAuxData()['Stored_Lines']; //Stored as [{x1,x2,y1,y2},...]
+
+//Remove all existing lines first
+var OldLines=document.getElementsByClassName('ANNoLine');
+if(OldLines.length>0){
+
+for(n=0;n< OldLines.length;n++){
+var L=OldLines[n];
+
+L.parentNode.removeChild(L);}
+}
+for (n in StoredLines){
+var LINE=document.createElementNS('http://www.w3.org/2000/svg', 'line');
+	var Aline=StoredLines[n];					
+
+						var BACK=document.getElementById('canvas');
+						LINE.setAttribute('x1',Aline.x1);
+						LINE.setAttribute('x2',Aline.x2);
+						LINE.setAttribute('y1',Aline.y1);
+						LINE.setAttribute('y2',Aline.y2);
+						LINE.setAttribute('stroke', 'black');
+						LINE.setAttribute('class',"ANNoLine");
+						LINE.setAttribute('stroke-width', 3);
+						LINE.addEventListener('mousedown',function(evt){
+						OurButton=document.getElementById('brush-mode-button');
+						if(OurButton.className.indexOf('active')!=-1){
+						
+						OnlySelectThisAnno(this);
+						}});
+						var BACK=document.getElementById('canvas');
+BACK.parentNode.parentNode.appendChild(LINE);
+}
+
+
+
+}
+
+function AddHLine(){
+Oclass=AddLineButHor.className;
+if(Oclass=='ClickActive'){
+StopAddHLine();
+}
+else{
+AddLineButHor.className='ClickActive';
+
+Zoom=document.getElementsByClassName('zoom-g')[0];
+		//Zoom=document.createElement('div');
+		Zoom.addEventListener('mousedown',HlineClick=function(evt){
+		var svg = document.querySelector('svg');
+						var pt = svg.createSVGPoint();
+						function cursorPoint(evt){
+							pt.x = evt.clientX; pt.y = evt.clientY;
+							G=document.getElementsByClassName('zoom-g')[0].childNodes[0];
+							//console.log(pt.matrixTransform((G.getScreenCTM().inverse())));
+							return pt.matrixTransform((G.getScreenCTM().inverse()));
+							//return pt.matrixTransform(G.childNodes[0].getScreenCTM().inverse());
+						}
+						
+						var loc = cursorPoint(evt);
+						//console.log(loc);
+						LINE=document.createElementNS('http://www.w3.org/2000/svg', 'line');
+						
+
+						var BACK=document.getElementById('canvas');
+						var Zeroth=parseInt(BACK.getAttribute('transform').split(',')[0].split('(')[1]);
+						LINE.setAttribute('x1',Zeroth);
+						var down=parseInt(BACK.getAttribute('width'))+Zeroth;
+						LINE.setAttribute('x2',down);
+						LINE.setAttribute('y1',loc.y);
+						LINE.setAttribute('y2',loc.y);
+						
+						var StoredLines = LoadAuxData()['Stored_Lines'];
+						if(StoredLines==null){
+						StoredLines=[];
+						}
+						StoredLines.push({'x1':Zeroth,'x2':down,'y1':loc.y,'y2':loc.y})
+						SaveAppend('Stored_Lines',StoredLines)
+						
+						LINE.setAttribute('stroke', 'black');
+						LINE.setAttribute('class',"ANNoLine");
+						LINE.setAttribute('stroke-width', 3);
+						LINE.addEventListener('mousedown',function(evt){
+						OurButton=document.getElementById('brush-mode-button');
+						if(OurButton.className.indexOf('active')!=-1){
+						console.log("SELECTING");
+						OnlySelectThisAnno(this);
+							
+						}
+						//this.style.stroke='blue';
+						//this.parentNode.removeChild(this);
+						});
+						BACK.parentNode.parentNode.appendChild(LINE);
+						
+						StopAddHLine();
+						
+		});
+
+
+}
+
+
+}
+
+
+function StopAddLine(){
+AddLineBut.className='';
+Zoom=document.getElementsByClassName('zoom-g')[0];
+Zoom.removeEventListener('mousedown', VlineClick);
+}
+function AddLine(){
+Oclass=AddLineBut.className;
+if(Oclass=='ClickActive'){
+StopAddLine();
+}
+else{
+AddLineBut.className='ClickActive';
+
+Zoom=document.getElementsByClassName('zoom-g')[0];
+		//Zoom=document.createElement('div');
+		Zoom.addEventListener('mousedown',VlineClick=function(evt){
+		var svg = document.querySelector('svg');
+						var pt = svg.createSVGPoint();
+						function cursorPoint(evt){
+							pt.x = evt.clientX; pt.y = evt.clientY;
+							G=document.getElementsByClassName('zoom-g')[0].childNodes[0];
+							//console.log(pt.matrixTransform((G.getScreenCTM().inverse())));
+							return pt.matrixTransform((G.getScreenCTM().inverse()));
+							//return pt.matrixTransform(G.childNodes[0].getScreenCTM().inverse());
+						}
+						
+						var loc = cursorPoint(evt);
+						//console.log(loc);
+						LINE=document.createElementNS('http://www.w3.org/2000/svg', 'line');
+						
+						LINE.setAttribute('x1',loc.x);
+						LINE.setAttribute('x2',loc.x);
+						var BACK=document.getElementById('canvas');
+						var Zeroth=parseInt(BACK.getAttribute('transform').split(',')[1]);
+						LINE.setAttribute('y1',Zeroth);
+						var down=parseInt(BACK.getAttribute('height'))+Zeroth;
+						LINE.setAttribute('y2',down);
+						
+						var StoredLines = LoadAuxData()['Stored_Lines'];
+						if(StoredLines==null){
+						StoredLines=[];
+						}
+						StoredLines.push({'x1':loc.x,'x2':loc.x,'y1':Zeroth,'y2':down})
+						SaveAppend('Stored_Lines',StoredLines)
+						
+						LINE.setAttribute('stroke', 'black');
+						LINE.setAttribute('class',"ANNoLine");
+						LINE.setAttribute('stroke-width', 3);
+						LINE.addEventListener('mousedown',function(evt){
+						OurButton=document.getElementById('brush-mode-button');
+						if(OurButton.className.indexOf('active')!=-1){
+						OnlySelectThisAnno(this);
+							
+						}
+						//this.parentNode.removeChild(this);
+						});
+						BACK.parentNode.parentNode.appendChild(LINE);
+						
+						StopAddLine();
+						
+		});
+
+
+}
+
+
+}
+
+
 
 function LoadAuxData(){
 //OK, will store anything we want in a JSON contained in BUILDER.map['map_description']
@@ -284,6 +513,7 @@ function UpdateStylesheet(){
 	RenderArrowSizes();
 	RenderReactionFonts();
 	RenderReactionFontColors();
+	AddStoredLine();
 	
 var PARENT=document.getElementsByTagName('defs')[0];
 var OldStyle=document.getElementById('NStyle');
@@ -292,6 +522,8 @@ var OldStyle=document.createElement("style");
 OldStyle.id='NStyle';
 }
 StyleString='';
+
+StyleString+='svg.escher-svg .ANNoLine {stroke:black; stroke-width:5px;}svg.escher-svg .ANNoLine.selected{stroke:#87CEFA; stroke-width:8px;}';
 
 //Load unique style elements for node color
 Ulist=[];
