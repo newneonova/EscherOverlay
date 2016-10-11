@@ -104,8 +104,18 @@ BUILDER = escher.Builder(null, null, css, d3.select('#map_container'), options);
 <button type="button" onclick="ResetHeat()" id="RemFromHeat">Reset all Heatmaps</button>
 <span style="display:inline;"><label for="file" >Load expression data: </label> <input id='file' type="file" /> </span>
 </div>
-</div>
 
+</div>
+<div id='ColorMenu' class='Pretty' style="width:650px; visibility:hidden; position:fixed;">
+<canvas id='slide' style='float:left;' width=600px height=200px></canvas>
+<button style='float:left;' onclick='AddPole()'>Add Color Pole</button>
+<button style='float:left;' onclick='CloseColor()'> Close Color Changer</button>
+
+
+</div>
+<div id="ColorPicker" style='visibility:hidden;'/>
+<canvas id='Picker' width=350px height=200px/>
+</div>
 
 
 
@@ -130,40 +140,22 @@ BUILDER = escher.Builder(null, null, css, d3.select('#map_container'), options);
 <button id='AddLineBut' onclick='AddLine()'>Add one vertical line on click</button>
 <button id='AddLineButHor' onclick='AddHLine()'>Add one horizontal line on click</button>
 <!--button id='AddSeg' onclick='AddLineSeg()'>Add a line segment with two clicks</button-->
-
-
-
-
-</div>
-
-
-
-
-
-<div id='ColorMenu' style="visibility:hidden; position:fixed;">
-
-<button onclick='AddPole()'>Add Color Pole</button>
-
-<button onclick='CloseColor()'> Close Color Changer</button>
-<canvas id='slide' width=600px height=200px></canvas>
-<div id="ColorPicker" style='visibility:hidden;'/>
-<canvas id='Picker' width=350px height=200px/>
 </div>
 </div>
-<canvas id='Key' width=50px height=150px style='position:fixed;bottom:0;right:0;'></canvas>
 
-<div id='CompColorPanel' class='Pretty'  style=" visibility:hidden; position:fixed;">
+
+<div id='CompColorPanel'   style=" visibility:hidden; position:fixed;">
 <button onclick='CompCloseColors()'>Confirm color choices</button>
 <button onclick='DefaultColors()'>Return to default colors</button>
 <button onclick='Cancel()'>Cancel</button>
 <input type="checkbox" style='display:inline;' id="SegsAlso", checked=true> Color Segments<br>
-<div id="ColorPickerTwo" style='visibility:hidden;'/>
+<div id="ColorPickerTwo" style='visibility:hidden;'>
 <canvas id='Pickertwo' width=0px height=0x/>
 </div>
-
-
 </div>
 
+
+<canvas id='Key'  width=50px height=150px style='position:fixed;bottom:0;right:0;'></canvas>
 
 
 <script>
