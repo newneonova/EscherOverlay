@@ -201,7 +201,7 @@ AddToHeat.disabled=true;
 
 $('html').keyup(function(e){
     if(e.keyCode == 46) {
-        var OldSelect=document.getElementsByClassName("ANNoLine selected")[0];
+        var OldSelect=document.getElementsByClassName("selected")[0];
 		if(OldSelect!=null){
 		OldSelect.parentNode.removeChild(OldSelect);
 		SavePresentLines();
@@ -263,6 +263,9 @@ LINE.setAttribute('class',"ANNoLine selected");
 function SavePresentLines(){
 var StoredLines = [];
 var OldLines=document.getElementsByClassName('ANNoLine');
+
+
+
 if(OldLines.length>0){
 
 for(n=0;n< OldLines.length;n++){
@@ -282,13 +285,12 @@ var StoredLines = LoadAuxData()['Stored_Lines']; //Stored as [{x1,x2,y1,y2},...]
 
 //Remove all existing lines first
 var OldLines=document.getElementsByClassName('ANNoLine');
-if(OldLines.length>0){
 
-for(n=0;n< OldLines.length;n++){
-var L=OldLines[n];
-
-L.parentNode.removeChild(L);}
+while(OldLines.length > 0){
+OldLines[0].parentNode.removeChild(OldLines[0]);
 }
+
+
 for (n in StoredLines){
 var LINE=document.createElementNS('http://www.w3.org/2000/svg', 'line');
 	var Aline=StoredLines[n];					
@@ -309,6 +311,7 @@ var LINE=document.createElementNS('http://www.w3.org/2000/svg', 'line');
 						}});
 						var BACK=document.getElementById('canvas');
 BACK.parentNode.parentNode.appendChild(LINE);
+
 }
 
 
@@ -337,24 +340,21 @@ Zoom=document.getElementsByClassName('zoom-g')[0];
 						}
 						
 						var loc = cursorPoint(evt);
+							var BACK=document.getElementById('canvas');
+						var Zeroth=parseInt(BACK.getAttribute('transform').split(',')[0].split('(')[1]);
+							var down=parseInt(BACK.getAttribute('width'))+Zeroth;
 						//console.log(loc);
-						LINE=document.createElementNS('http://www.w3.org/2000/svg', 'line');
+						/*LINE=document.createElementNS('http://www.w3.org/2000/svg', 'line');
 						
 
-						var BACK=document.getElementById('canvas');
-						var Zeroth=parseInt(BACK.getAttribute('transform').split(',')[0].split('(')[1]);
+					
 						LINE.setAttribute('x1',Zeroth);
-						var down=parseInt(BACK.getAttribute('width'))+Zeroth;
+					
 						LINE.setAttribute('x2',down);
 						LINE.setAttribute('y1',loc.y);
 						LINE.setAttribute('y2',loc.y);
 						
-						var StoredLines = LoadAuxData()['Stored_Lines'];
-						if(StoredLines==null){
-						StoredLines=[];
-						}
-						StoredLines.push({'x1':Zeroth,'x2':down,'y1':loc.y,'y2':loc.y})
-						SaveAppend('Stored_Lines',StoredLines)
+
 						
 						LINE.setAttribute('stroke', 'black');
 						LINE.setAttribute('class',"ANNoLine");
@@ -362,15 +362,22 @@ Zoom=document.getElementsByClassName('zoom-g')[0];
 						LINE.addEventListener('mousedown',function(evt){
 						OurButton=document.getElementById('brush-mode-button');
 						if(OurButton.className.indexOf('active')!=-1){
-						console.log("SELECTING");
+						//console.log("SELECTING");
 						OnlySelectThisAnno(this);
 							
 						}
 						//this.style.stroke='blue';
 						//this.parentNode.removeChild(this);
 						});
-						BACK.parentNode.parentNode.appendChild(LINE);
+						BACK.parentNode.parentNode.appendChild(LINE);*/
+						//console.log('added line');
 						
+		var StoredLines = LoadAuxData()['Stored_Lines'];
+						if(StoredLines==null){
+						StoredLines=[];
+						}
+						StoredLines.push({'x1':Zeroth,'x2':down,'y1':loc.y,'y2':loc.y})
+						SaveAppend('Stored_Lines',StoredLines)
 						StopAddHLine();
 						
 		});
@@ -409,23 +416,20 @@ Zoom=document.getElementsByClassName('zoom-g')[0];
 						}
 						
 						var loc = cursorPoint(evt);
+						var BACK=document.getElementById('canvas');
+						var Zeroth=parseInt(BACK.getAttribute('transform').split(',')[1]);
+						
+						var down=parseInt(BACK.getAttribute('height'))+Zeroth;
 						//console.log(loc);
-						LINE=document.createElementNS('http://www.w3.org/2000/svg', 'line');
+					/*	LINE=document.createElementNS('http://www.w3.org/2000/svg', 'line');
 						
 						LINE.setAttribute('x1',loc.x);
 						LINE.setAttribute('x2',loc.x);
-						var BACK=document.getElementById('canvas');
-						var Zeroth=parseInt(BACK.getAttribute('transform').split(',')[1]);
 						LINE.setAttribute('y1',Zeroth);
-						var down=parseInt(BACK.getAttribute('height'))+Zeroth;
 						LINE.setAttribute('y2',down);
 						
-						var StoredLines = LoadAuxData()['Stored_Lines'];
-						if(StoredLines==null){
-						StoredLines=[];
-						}
-						StoredLines.push({'x1':loc.x,'x2':loc.x,'y1':Zeroth,'y2':down})
-						SaveAppend('Stored_Lines',StoredLines)
+					
+
 						
 						LINE.setAttribute('stroke', 'black');
 						LINE.setAttribute('class',"ANNoLine");
@@ -439,7 +443,13 @@ Zoom=document.getElementsByClassName('zoom-g')[0];
 						//this.parentNode.removeChild(this);
 						});
 						BACK.parentNode.parentNode.appendChild(LINE);
-						
+						console.log('added vline line');*/
+							var StoredLines = LoadAuxData()['Stored_Lines'];
+						if(StoredLines==null){
+						StoredLines=[];
+						}
+						StoredLines.push({'x1':loc.x,'x2':loc.x,'y1':Zeroth,'y2':down})
+						SaveAppend('Stored_Lines',StoredLines)
 						StopAddLine();
 						
 		});
