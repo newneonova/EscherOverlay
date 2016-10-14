@@ -99,6 +99,7 @@ BUILDER = escher.Builder(null, null, css, d3.select('#map_container'), options);
 <span style="display:block;">
 <input type="checkbox" style='display:inline;' id="ShowRows" onclick='DrawHeatMap()'> Hide row labels<br>
 <input type="checkbox" style='display:inline;' id="ShowColumns" onclick='DrawHeatMap()'> Hide column labels<br>
+<input type="checkbox" style='display:inline;' id="ClusterRow" onclick='DrawHeatMap()'>Cluster like rows<br>
 </span>
 <button type="button" onclick="AddToCurrent()" id="AddToHeat" disabled>Add row to current heatmap</button>
 <button type="button" onclick="ResetHeat()" id="RemFromHeat">Reset all Heatmaps</button>
@@ -1974,7 +1975,7 @@ function DrawHeatMap(){
 			numeric_array.push( BUILDER.map.reactions[items] );
 			IDarray.push(items);
 		}
-		for(var Reac=0;Reac<numeric_array.length;Reac++){
+		for(var Reac=0;Reac<numeric_array.length;Reac++){ //For each reaction
 			var Reaction = numeric_array[Reac];
 			var RawRules=Reaction.gene_reaction_rule;
 			RawRules=replaceAll('and',';',RawRules);
@@ -1988,7 +1989,7 @@ function DrawHeatMap(){
 			for(var temp=0;temp<RawRules.length;temp++){
 				if(RawRules[temp].length>0){
 					if(RefinedRules.indexOf(RawRules[temp])==-1){
-						RefinedRules.push(RawRules[temp]);}
+						RefinedRules.push(RawRules[temp]);} //get list of reaction rules
 				}
 			}
 			//console.log(IDarray[Reac]);
@@ -2003,7 +2004,109 @@ function DrawHeatMap(){
 					HeadersArray.push(UseRowHeaders.indexOf(RefinedRules[temp]));
 				}
 			}
+			//Can do clustering by rows by reordering the HeadersArray!!
+			
+		
+			
+	
 			if(HeadersArray.length>0){
+			
+			if(ClusterRow.checked == true){
+			HeatmapToCluster = [];
+			
+			Ordering = new Array();
+			for(row in HeadersArray){ //need to cluster the rows
+			NameDataCombo = new Array();
+			NameDataCombo.push(row);
+			NameDataCombo.push(UseTable[[HeadersArray[row]]]);
+			//can get the data of the ROW by ROW = UseTable[[HeadersArray[row]]]
+			HeatmapToCluster.push(NameDataCombo);
+			Ordering.push("");
+			}
+			
+			//Make distance matrix for the heatmap rows
+		ClusNum=0;
+while(HeatmapToCluster.length>2){
+//DISTANCE=new Array();
+		MinScore=100000;
+			MinXY=[0,0];
+			for(FFF in HeatmapToCluster){
+			//DISTANCE[FFF]=new Array();
+	
+			for(GGG in HeatmapToCluster){
+			ROWONE = HeatmapToCluster[FFF][1];
+			ROWTWO = HeatmapToCluster[GGG][1];
+			TD=0;
+			for(V=0;V<ROWONE.length;V++){
+			if(!isNaN(parseFloat(ROWONE[V])) && !isNaN(parseFloat(ROWTWO[V]))){
+			TD=TD+Math.pow(parseFloat(ROWONE[V])-parseFloat(ROWTWO[V]),2);}
+			}
+			TD=Math.sqrt(TD);
+			//DISTANCE[FFF][GGG]=TD;
+			if(FFF != GGG){
+			if(MinScore > TD){
+			MinScore=Math.min(MinScore,TD);
+			MinXY=[HeatmapToCluster[FFF][0],HeatmapToCluster[GGG][0]];
+			INDXY=[FFF,GGG];
+			MROWONE=ROWONE;
+			MROWTWO=ROWTWO;
+			}
+
+			}
+			}
+			
+			}
+			//Ordering[MinXY[0]]=Ordering[MinXY[0]]+"_"+ClusNum;
+		//	Ordering[MinXY[1]]=Ordering[MinXY[1]]+"_"+ClusNum;
+			//ClusNum++;
+			if(INDXY[0]>INDXY[1]){
+			BigInd = INDXY[0];
+			SmalInd = INDXY[1];
+			}
+			else{
+			BigInd = INDXY[1];
+			SmalInd = INDXY[0];
+			}
+			
+			ROWONE = MROWONE;
+			ROWTWO = MROWTWO;
+			TD=0;
+			NewDif=new Array();
+			for(V=0;V<ROWONE.length;V++){
+			
+			NewDif.push((parseFloat(ROWONE[V])+parseFloat(ROWTWO[V]))/2);
+			
+			}
+			HeatmapToCluster.splice(BigInd,1);
+			HeatmapToCluster[SmalInd]=[MinXY[1]+"_"+MinXY[0],NewDif];
+			
+			}
+			
+			if(HeatmapToCluster.length == 2){
+			ORDER=new Array();
+			for(var GGG =0; GGG < 2; GGG++){
+			ORDERS=HeatmapToCluster[GGG][0].split("_");
+			for(var JJJ=0;JJJ<ORDERS.length;JJJ++){
+			ORDER.push(parseInt(ORDERS[JJJ]));
+						}
+						}
+			TARRAY=new Array();
+			for (var row=0; row < HeadersArray.length; row++){
+			TARRAY.push(HeadersArray[ORDER[row]]);
+			}
+			HeadersArray=new Array();
+			for (var row=0; row < TARRAY.length; row++){
+			HeadersArray.push(TARRAY[row]);
+			}
+			}
+			//console.log(HeatmapToCluster);
+			
+			
+			//using EuclideanDistance
+			
+			
+			}
+			
 				//Problem with this, Need to render the text before we can measure it's width. Causing big problems.
 				ParentReaction=document.getElementById('r'+IDarray[Reac]);
 				Parent=document.getElementById('heatmapContainer_'+'r'+IDarray[Reac]);
@@ -2131,7 +2234,7 @@ this.setAttribute('transform','translate('+NewX+','+NewY+')');
 					TempColArray[i].setAttribute('y',ColStart+MinCell*(i)+6*MinCell/8);
 					TempColArray[i].setAttribute('x',-RowStart);
 				}
-				for(var i=0;i<HeadersArray.length;i++){
+				for(var i=0;i<HeadersArray.length;i++){//HEadersArray are the rows
 					var Ypos=RowStart+MinCell*i;
 					for(var j=0; j<UseColumnHeaders.length;j++){
 						var Xpos=ColStart+MinCell*(j);
@@ -2140,7 +2243,7 @@ this.setAttribute('transform','translate('+NewX+','+NewY+')');
 						Cell.setAttributeNS(null,'y',Ypos);
 						Cell.setAttributeNS(null,'height',MinCell);
 						Cell.setAttributeNS(null,'width',MinCell);
-						var Value=parseFloat(UseTable[[HeadersArray[i]]][j]);
+						var Value=parseFloat(UseTable[[HeadersArray[i]]][j]); //Value grabbed by HeadersArray value (which is the name of the row)
 						if(!isNaN(Value)  ){
 							Cell.setAttributeNS(null,'fill',OurBar.GetColor(Value));
 						}
