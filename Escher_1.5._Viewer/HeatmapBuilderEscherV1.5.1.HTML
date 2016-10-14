@@ -121,7 +121,7 @@ BUILDER = escher.Builder(null, null, css, d3.select('#map_container'), options);
 
 
 
-<div id='ButtonSub' class='Pretty' style="display:none;position:fixed;">
+<div id='ButtonSub' class='Pretty' style="display:none;position:fixed; top:0;">
 <h3>Graph Options</h3>
 <div>
 <button onclick='ChangeName()'>Change map name</button>
@@ -141,18 +141,20 @@ BUILDER = escher.Builder(null, null, css, d3.select('#map_container'), options);
 <button id='AddLineButHor' onclick='AddHLine()'>Add one horizontal line on click</button>
 <!--button id='AddSeg' onclick='AddLineSeg()'>Add a line segment with two clicks</button-->
 </div>
+
 </div>
-
-
-<div id='CompColorPanel'   style=" visibility:hidden; position:fixed;">
+<div id='CompColorPanel'  class='Pretty'  style=" visibility:hidden; position:fixed; top:0;">
 <button onclick='CompCloseColors()'>Confirm color choices</button>
 <button onclick='DefaultColors()'>Return to default colors</button>
 <button onclick='Cancel()'>Cancel</button>
-<input type="checkbox" style='display:inline;' id="SegsAlso", checked=true> Color Segments<br>
+<input type="checkbox" style='display:inline;' id="SegsAlso"> Color Segments<br>
 <div id="ColorPickerTwo" style='visibility:hidden;'>
 <canvas id='Pickertwo' width=0px height=0x/>
 </div>
 </div>
+
+
+
 
 
 <canvas id='Key'  width=50px height=150px style='position:fixed;bottom:0;right:0;'></canvas>
@@ -190,9 +192,28 @@ SomethingIsHighlighted=false;
 AddToHeat.disabled=true;
 //**GLOBAL VARIABLES**
 
+AddToggleToDelOptions();
+
+function AddToggleToDelOptions(){
+var DelButt=menu.childNodes[0].childNodes[3].childNodes[1].childNodes[6].childNodes[0];
+try{
+DelButt.removeEventListener('mousedown', DelClicked);}
+catch(ERR){}
+finally{
+
+DelButt.addEventListener('mousedown',DelClicked=function(){
+console.log('Del clicked');
+var OldSelect=document.getElementsByClassName("selected")[0];
+		if(OldSelect!=null){
+		OldSelect.parentNode.removeChild(OldSelect);
+		SavePresentLines();
+		}
+})
+}
+}
 
 $('html').keyup(function(e){
-    if(e.keyCode == 46) {
+    if((e.keyCode == 46)||(e.keyCode == 8)) {
         var OldSelect=document.getElementsByClassName("selected")[0];
 		if(OldSelect!=null){
 		OldSelect.parentNode.removeChild(OldSelect);
@@ -211,11 +232,20 @@ function HideAll(){
 }
 
 function ToggleButtons(){
+
+
+
 UpdateStylesheet();
 	if (ButtonSub.style.display=='none'){
+	if(CompColorPanel.style.visibility == "visible"){
+Cancel();
+}
+else{
+
 		HideAll();
 		BToggler.textContent='Hide Options';
 		ButtonSub.style.display='';
+		}
 	}
 	else{
 	HideAll();
@@ -225,9 +255,16 @@ UpdateStylesheet();
 function ToggleHeatmaps(){
 UpdateStylesheet();
 	if (HeatmapPanel.style.display=='none'){
+	if(CompColorPanel.style.visibility == "visible"){
+Cancel();
+}
+
+
+
 		HideAll();
 		HeatmapButt.textContent='Hide Heatmap Options';
 		HeatmapPanel.style.display='';
+		
 	}
 	else{
 	HideAll();
@@ -510,6 +547,7 @@ UpdateStylesheet();
 
 
 function UpdateStylesheet(){
+AddToggleToDelOptions();
 	RenderNodeColors();
 	RenderArrowColors();
 	RenderArrowSizes();
@@ -846,6 +884,7 @@ function ChangeReactionFontSize(){
 
 
 function ColorMetabolitesComp(){
+HideAll();
 	CompColorPanel.style.visibility='visible';
 
 	var MapNodes=BUILDER.map['nodes'];
@@ -886,12 +925,13 @@ function ColorMetabolitesComp(){
 }
 function Cancel(){
 CompColorPanel.style.visibility='hidden';
+ToggleButtons();
 
 }
 
 function CompCloseColors(){
 	//OtherOptionPanel.style.visibility='visible';
-	CompColorPanel.style.visibility='hidden';
+	//CompColorPanel.style.visibility='hidden';
 	
 	var Node_Color={};
 	
@@ -914,7 +954,7 @@ function CompCloseColors(){
 	if(SegsAlso.checked){
 		ColorSegments(CompColor);
 	}
-	 
+	 Cancel();
 }	
 
 
