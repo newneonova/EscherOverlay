@@ -1,0 +1,3347 @@
+<!-- index.html - A simple embedded Escher map.
+The MIT License (MIT)
+This software is Copyright © 2015 The Regents of the University of
+California. All Rights Reserved.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+-->
+<!DOCTYPE html>
+<html>
+<!-- Bootstrap dependencies for the menu and buttons -->
+<script src="src/jquery-2.1.4-min.js"/></script>
+<script src="src/bootstrap-3.3.5.min.js"></script>
+<link rel="stylesheet" href="src/bootstrap-3.3.5.min.css"/>
+<!-- d3 -->
+<script src="src/d3-3.5.6.min.js"></script>
+
+<!-- Escher files -->
+<script src="src/escher-1.5.0.min.js" charset="utf-8"></script>
+<link rel="stylesheet" href="src/builder-1.5.0.min.css"/>
+<!--link rel="stylesheet" href="builder-embed-1.3.0.css"/-->
+<meta charset="utf-8"/>
+<body>
+<div id="map_container"></div>
+
+<style>
+
+   #structures-buttons {
+     position: absolute;
+     bottom: 5px;
+     left: 5px;
+   }
+
+.Pretty {
+	border-radius: 25px;
+border: 2px solid #806000;
+padding: 20px; 
+	/*width: 200px;*/
+	/* height: 100px; */
+background: #466368;
+background: -webkit-linear-gradient(rgba(200,150,100,.5),rgba(200,200,100,.8));
+background:    -moz-linear-gradient(rgba(200,150,100,.5),rgba(200,200,100,.8));
+background:         linear-gradient(rgba(200,150,100,.5),rgba(200,200,100,.8));
+}
+
+.ClickActive{
+background-color: blue;
+color: cyan;
+}
+</style>
+<script>
+css='@charset "utf-8";svg.escher-svg #mouse-node {  fill: none;}svg.escher-svg #canvas {  stroke: #ccc;  stroke-width: 7px;  fill: white;}svg.escher-svg .resize-rect {  fill: black;  opacity: 0;  stroke: none;}svg.escher-svg .label {  font-family: sans-serif;  font-style: italic;  font-weight: bold;  font-size: 8px;  fill: black;  stroke: none;  text-rendering: optimizelegibility;  cursor: default;}svg.escher-svg .reaction-label {  font-size: 30px;  fill: rgb(32, 32, 120);  text-rendering: optimizelegibility;}svg.escher-svg .node-label {  font-size: 20px;}svg.escher-svg .gene-label {  font-size: 18px;  fill: rgb(32, 32, 120);  text-rendering: optimizelegibility;  cursor: default;}svg.escher-svg .text-label .label {  font-size: 50px;}svg.escher-svg .text-label-input {  font-size: 50px;}svg.escher-svg .node-circle {  stroke-width: 2px;}svg.escher-svg .midmarker-circle, svg.escher-svg .multimarker-circle {  fill: white;  fill-opacity: 0.2;  stroke: rgb(50, 50, 50);}svg.escher-svg g.selected .node-circle{  stroke-width: 6px;  stroke: rgb(20, 113, 199);}svg.escher-svg g.selected .label {  fill: rgb(20, 113, 199);}svg.escher-svg .metabolite-circle {  stroke: rgb(162, 69, 16);  fill: rgb(224, 134, 91);}svg.escher-svg g.selected .metabolite-circle {  stroke: rgb(5, 2, 0);}svg.escher-svg .segment {  stroke: #334E75;  stroke-width: 10px;  fill: none;}svg.escher-svg .arrowhead {  fill: #334E75;}svg.escher-svg .stoichiometry-label-rect {  fill: white;  opacity: 0.5;}svg.escher-svg .stoichiometry-label {  fill: #334E75;  font-size: 17px;}svg.escher-svg .membrane {  fill: none;  stroke: rgb(255, 187, 0);}svg.escher-svg .brush .extent {  fill-opacity: 0.1;  fill: black;  stroke: #fff;  shape-rendering: crispEdges;}svg.escher-svg #brush-container .background {  fill: none;}svg.escher-svg .bezier-circle {  fill: rgb(255,255,255);}svg.escher-svg .bezier-circle.b1 {  stroke: red;}svg.escher-svg .bezier-circle.b2 {  stroke: blue;}svg.escher-svg .connect-line{  stroke: rgb(200,200,200);}svg.escher-svg .direction-arrow {  stroke: black;  stroke-width: 1px;  fill: white;  opacity: 0.3;}svg.escher-svg .start-reaction-cursor {  cursor: pointer;}svg.escher-svg .start-reaction-target {  stroke: rgb(100,100,100);  fill: none;  opacity: 0.5;}svg.escher-svg .rotation-center-line {  stroke: red;  stroke-width: 5px;}svg.escher-svg .highlight {  fill: #D97000;  text-decoration: underline;}svg.escher-svg .cursor-grab {  cursor: grab;  cursor: -webkit-grab;}svg.escher-svg .cursor-grabbing {  cursor: grabbing;  cursor: -webkit-grabbing;}svg.escher-svg .edit-text-cursor {  cursor: text;}';
+var options = {
+menu: 'all',
+	fill_screen: true,
+	// not use the d3 transforms for this map
+	use_3d_transform: true,
+	scroll_behavior: "zoom",
+	show_gene_reaction_rules: true
+};
+BUILDER = escher.Builder(null, null, css, d3.select('#map_container'), options);
+</script>
+
+
+
+
+
+
+    <div id="structures-buttons">
+
+      <a class="btn btn-default btn-md" onclick="ToggleHeatmaps()" id="HeatmapButt">
+        Add heatmaps
+      </a>
+	   
+	  	     <a class="btn btn-default btn-md" onclick="ToggleButtons()" id="BToggler" >
+        Open other options
+      </a>
+
+
+  </div>
+
+ <div id='HeatmapPanel' class='Pretty' style="display:none; position:fixed;">
+<h3>Heatmap Options</h3>
+<div>
+<button type="button" onclick="SetSize()">Set heatmap size</button>
+<button type="button" onclick="OpenColorScale()" id="Confirm">Change color scale</button>
+<span style="display:none;">
+<input type="checkbox" style='display:inline;' id="ShowRows" onclick='DenisDrawHeatMap()'> Hide row labels<br>
+<input type="checkbox" style='display:inline;' id="ShowColumns" onclick='DenisDrawHeatMap()'> Hide column labels<br>
+<input type="checkbox" style='display:inline;' id="ClusterRow" onclick='DenisDrawHeatMap()'>Cluster like rows<br>
+</span>
+<button type="button" onclick="AddToCurrent()" id="AddToHeat" disabled>Add row to current heatmap</button>
+<button type="button" onclick="ResetHeat()" id="RemFromHeat">Reset all Heatmaps</button>
+<span style="display:inline;"><label for="file" >Load expression data: </label> <input id='file' type="file" /> </span>
+</div>
+
+</div>
+<div id='ColorMenu' class='Pretty' style="width:650px; visibility:hidden; position:fixed;">
+<canvas id='slide' style='float:left;' width=600px height=200px></canvas>
+<button style='float:left;' onclick='AddPole()'>Add Color Pole</button>
+<button style='float:left;' onclick='CloseColor()'> Close Color Changer</button>
+
+
+</div>
+<div id="ColorPicker" style='visibility:hidden;'/>
+<canvas id='Picker' width=350px height=200px/>
+</div>
+
+
+
+
+
+<div id='ButtonSub' class='Pretty' style="display:none;position:fixed; top:0;">
+<h3>Graph Options</h3>
+<div>
+<button onclick='ChangeName()'>Change map name</button>
+<button id='NodesButton' onclick='ToggleNodes()'>Bigger Internal Nodes</button>
+<h5>Nodes</h5>
+<button onclick='ColorMetabolitesComp()'>Color metabolites by compartment</button>
+<button onclick='SelectedNodeColorClicled()'>Color selected metabolites</button>
+<h5>Arrows</h5>
+<button onclick='SelectedSegmentsColorClicked()'>Color selected arrows</button>
+<button onclick='ResizeArrow()'>Resize selected arrows</button>
+<button onclick='MakeLookRobotSelected()'>Make selected segments look angular</button>
+<h5>Text</h5>
+<button onclick='ChangeReactionFontSize()'>Change selected node's label font size</button>
+<button onclick='ChangeReactionColor()'>Change selected node's label color</button>
+<h5>Drawings</h5>
+<button id='AddLineBut' onclick='AddLine()'>Add one vertical line on click</button>
+<button id='AddLineButHor' onclick='AddHLine()'>Add one horizontal line on click</button>
+<!--button id='AddSeg' onclick='AddLineSeg()'>Add a line segment with two clicks</button-->
+</div>
+
+</div>
+<div id='CompColorPanel'  class='Pretty'  style=" visibility:hidden; position:fixed; top:0;">
+<button onclick='CompCloseColors()'>Confirm color choices</button>
+<button onclick='DefaultColors()'>Return to default colors</button>
+<button onclick='Cancel()'>Cancel</button>
+<input type="checkbox" style='display:inline;' id="SegsAlso"> Color Segments<br>
+<div id="ColorPickerTwo" style='visibility:hidden;'>
+<canvas id='Pickertwo' width=0px height=0x/>
+</div>
+</div>
+
+
+
+
+
+<canvas id='Key'  width=50px height=150px style='position:fixed;bottom:0;right:0;'></canvas>
+
+
+<script>
+//GLOBAL VARIABLES
+BinMe=true;
+BinKey=true;
+GenerateBinValues();
+NoMore=false;
+ColLabels=0;
+RowNames=0;
+RowData=1;
+ColData=1;
+GloCell=60;
+IsLog=false;
+StoredTable=[];
+DataTable=[];
+ShowCsvId=false;
+RowLimiter=[];
+ColumnLimiter=[];
+RowString='';
+ColumnString='';
+ColorContext=slide.getContext('2d');
+ColorContext.fillStyle=rgbToHex(255,255,255);
+ColorContext.fillRect(0,0,ColorContext.canvas.width,ColorContext.canvas.height);
+document.getElementById('file').addEventListener('change', handleFileSelectDenis, false); 
+Extra={};
+Start={'x':0,'y':0};
+OrigPos={'x':0,'y':0};
+Clicked=null;
+Clicking=false;
+SomethingIsHighlighted=false;
+AddToHeat.disabled=true;
+//**GLOBAL VARIABLES**
+
+AddToggleToDelOptions();
+
+function AddToggleToDelOptions(){
+var DelButt=menu.childNodes[0].childNodes[3].childNodes[1].childNodes[6].childNodes[0];
+try{
+DelButt.removeEventListener('mousedown', DelClicked);}
+catch(ERR){}
+finally{
+
+DelButt.addEventListener('mousedown',DelClicked=function(){
+console.log('Del clicked');
+var OldSelect=document.getElementsByClassName("selected")[0];
+		if(OldSelect!=null){
+		OldSelect.parentNode.removeChild(OldSelect);
+		SavePresentLines();
+		}
+})
+}
+}
+
+$('html').keyup(function(e){
+    if((e.keyCode == 46)||(e.keyCode == 8)) {
+        var OldSelect=document.getElementsByClassName("selected")[0];
+		if(OldSelect!=null){
+		OldSelect.parentNode.removeChild(OldSelect);
+		SavePresentLines();
+		}
+    }
+});
+
+
+
+function HideAll(){
+		ButtonSub.style.display='none';
+		BToggler.textContent='Open other options';
+		HeatmapPanel.style.display='none';
+		HeatmapButt.textContent='Add Heatmaps';
+}
+
+function ToggleButtons(){
+
+
+
+UpdateStylesheet();
+	if (ButtonSub.style.display=='none'){
+	if(CompColorPanel.style.visibility == "visible"){
+Cancel();
+}
+else{
+
+		HideAll();
+		BToggler.textContent='Hide Options';
+		ButtonSub.style.display='';
+		}
+	}
+	else{
+	HideAll();
+	}
+}
+
+function ToggleHeatmaps(){
+UpdateStylesheet();
+	if (HeatmapPanel.style.display=='none'){
+	if(CompColorPanel.style.visibility == "visible"){
+Cancel();
+}
+
+
+
+		HideAll();
+		HeatmapButt.textContent='Hide Heatmap Options';
+		HeatmapPanel.style.display='';
+		
+	}
+	else{
+	HideAll();
+	}
+
+}
+
+
+function StopAddHLine(){
+AddLineButHor.className='';
+Zoom=document.getElementsByClassName('zoom-g')[0];
+Zoom.removeEventListener('mousedown', HlineClick);
+}
+
+
+function OnlySelectThisAnno(LINE){
+
+var OldSelect=document.getElementsByClassName("ANNoLine selected")[0];
+if(OldSelect!=null){
+OldSelect.setAttribute('class',"ANNoLine");
+}
+LINE.setAttribute('class',"ANNoLine selected");
+}
+
+function SavePresentLines(){
+var StoredLines = [];
+var OldLines=document.getElementsByClassName('ANNoLine');
+
+
+
+if(OldLines.length>0){
+
+for(n=0;n< OldLines.length;n++){
+var L=OldLines[n];
+
+StoredLines.push({'x1':L.getAttribute('x1'),'x2':L.getAttribute('x2'),'y1':L.getAttribute('y1'),'y2':L.getAttribute('y2')})
+
+
+}
+}
+
+SaveAppend('Stored_Lines',StoredLines)
+
+}
+function AddStoredLine(){
+var StoredLines = LoadAuxData()['Stored_Lines']; //Stored as [{x1,x2,y1,y2},...]
+
+//Remove all existing lines first
+var OldLines=document.getElementsByClassName('ANNoLine');
+
+while(OldLines.length > 0){
+OldLines[0].parentNode.removeChild(OldLines[0]);
+}
+
+
+for (n in StoredLines){
+var LINE=document.createElementNS('http://www.w3.org/2000/svg', 'line');
+	var Aline=StoredLines[n];					
+
+						var BACK=document.getElementById('canvas');
+						LINE.setAttribute('x1',Aline.x1);
+						LINE.setAttribute('x2',Aline.x2);
+						LINE.setAttribute('y1',Aline.y1);
+						LINE.setAttribute('y2',Aline.y2);
+						LINE.setAttribute('stroke', 'black');
+						LINE.setAttribute('class',"ANNoLine");
+						LINE.setAttribute('stroke-width', 3);
+						LINE.addEventListener('mousedown',function(evt){
+						OurButton=document.getElementById('brush-mode-button');
+						if(OurButton.className.indexOf('active')!=-1){
+						
+						OnlySelectThisAnno(this);
+						}});
+						var BACK=document.getElementById('canvas');
+BACK.parentNode.parentNode.appendChild(LINE);
+
+}
+
+
+
+}
+
+function AddHLine(){
+Oclass=AddLineButHor.className;
+if(Oclass=='ClickActive'){
+StopAddHLine();
+}
+else{
+AddLineButHor.className='ClickActive';
+
+Zoom=document.getElementsByClassName('zoom-g')[0];
+		//Zoom=document.createElement('div');
+		Zoom.addEventListener('mousedown',HlineClick=function(evt){
+		var svg = document.querySelector('svg');
+						var pt = svg.createSVGPoint();
+						function cursorPoint(evt){
+							pt.x = evt.clientX; pt.y = evt.clientY;
+							G=document.getElementsByClassName('zoom-g')[0].childNodes[0];
+							//console.log(pt.matrixTransform((G.getScreenCTM().inverse())));
+							return pt.matrixTransform((G.getScreenCTM().inverse()));
+							//return pt.matrixTransform(G.childNodes[0].getScreenCTM().inverse());
+						}
+						
+						var loc = cursorPoint(evt);
+							var BACK=document.getElementById('canvas');
+						var Zeroth=parseInt(BACK.getAttribute('transform').split(',')[0].split('(')[1]);
+							var down=parseInt(BACK.getAttribute('width'))+Zeroth;
+						//console.log(loc);
+						/*LINE=document.createElementNS('http://www.w3.org/2000/svg', 'line');
+						
+
+					
+						LINE.setAttribute('x1',Zeroth);
+					
+						LINE.setAttribute('x2',down);
+						LINE.setAttribute('y1',loc.y);
+						LINE.setAttribute('y2',loc.y);
+						
+
+						
+						LINE.setAttribute('stroke', 'black');
+						LINE.setAttribute('class',"ANNoLine");
+						LINE.setAttribute('stroke-width', 3);
+						LINE.addEventListener('mousedown',function(evt){
+						OurButton=document.getElementById('brush-mode-button');
+						if(OurButton.className.indexOf('active')!=-1){
+						//console.log("SELECTING");
+						OnlySelectThisAnno(this);
+							
+						}
+						//this.style.stroke='blue';
+						//this.parentNode.removeChild(this);
+						});
+						BACK.parentNode.parentNode.appendChild(LINE);*/
+						//console.log('added line');
+						
+		var StoredLines = LoadAuxData()['Stored_Lines'];
+						if(StoredLines==null){
+						StoredLines=[];
+						}
+						StoredLines.push({'x1':Zeroth,'x2':down,'y1':loc.y,'y2':loc.y})
+						SaveAppend('Stored_Lines',StoredLines)
+						StopAddHLine();
+						
+		});
+
+
+}
+
+
+}
+
+
+function StopAddLine(){
+AddLineBut.className='';
+Zoom=document.getElementsByClassName('zoom-g')[0];
+Zoom.removeEventListener('mousedown', VlineClick);
+}
+function AddLine(){
+Oclass=AddLineBut.className;
+if(Oclass=='ClickActive'){
+StopAddLine();
+}
+else{
+AddLineBut.className='ClickActive';
+
+Zoom=document.getElementsByClassName('zoom-g')[0];
+		//Zoom=document.createElement('div');
+		Zoom.addEventListener('mousedown',VlineClick=function(evt){
+		var svg = document.querySelector('svg');
+						var pt = svg.createSVGPoint();
+						function cursorPoint(evt){
+							pt.x = evt.clientX; pt.y = evt.clientY;
+							G=document.getElementsByClassName('zoom-g')[0].childNodes[0];
+							//console.log(pt.matrixTransform((G.getScreenCTM().inverse())));
+							return pt.matrixTransform((G.getScreenCTM().inverse()));
+							//return pt.matrixTransform(G.childNodes[0].getScreenCTM().inverse());
+						}
+						
+						var loc = cursorPoint(evt);
+						var BACK=document.getElementById('canvas');
+						var Zeroth=parseInt(BACK.getAttribute('transform').split(',')[1]);
+						
+						var down=parseInt(BACK.getAttribute('height'))+Zeroth;
+						//console.log(loc);
+					/*	LINE=document.createElementNS('http://www.w3.org/2000/svg', 'line');
+						
+						LINE.setAttribute('x1',loc.x);
+						LINE.setAttribute('x2',loc.x);
+						LINE.setAttribute('y1',Zeroth);
+						LINE.setAttribute('y2',down);
+						
+					
+
+						
+						LINE.setAttribute('stroke', 'black');
+						LINE.setAttribute('class',"ANNoLine");
+						LINE.setAttribute('stroke-width', 3);
+						LINE.addEventListener('mousedown',function(evt){
+						OurButton=document.getElementById('brush-mode-button');
+						if(OurButton.className.indexOf('active')!=-1){
+						OnlySelectThisAnno(this);
+							
+						}
+						//this.parentNode.removeChild(this);
+						});
+						BACK.parentNode.parentNode.appendChild(LINE);
+						console.log('added vline line');*/
+							var StoredLines = LoadAuxData()['Stored_Lines'];
+						if(StoredLines==null){
+						StoredLines=[];
+						}
+						StoredLines.push({'x1':loc.x,'x2':loc.x,'y1':Zeroth,'y2':down})
+						SaveAppend('Stored_Lines',StoredLines)
+						StopAddLine();
+						
+		});
+
+
+}
+
+
+}
+
+
+
+function LoadAuxData(){
+//OK, will store anything we want in a JSON contained in BUILDER.map['map_description']
+//Split by the string '____****____'
+//anything to the left is the JSON object, anything to the right is the original description
+if(BUILDER.map['map_description'].length==0){
+BUILDER.map['map_description']="No Desc.";
+}
+
+var Temps = BUILDER.map['map_description'].split('____****____');
+
+try{
+var V=JSON.parse(Temps[0]);
+return(V)
+}
+catch(e){
+return({})
+}
+
+}
+
+function SaveAuxData(DatToSave){
+//DatToSave is a JSON
+var Temps = BUILDER.map['map_description'].split('____****____');
+if (Temps.length>1){
+var OldDesc=Temps[1];
+}
+else{
+OldDesc=Temps[0];
+}
+
+BUILDER.map['map_description']=JSON.stringify(DatToSave)+'____****____'+OldDesc;
+UpdateStylesheet();
+}
+
+function SaveAppend(Name,Data){
+var Dat=LoadAuxData();
+Dat[Name]=Data;
+SaveAuxData(Dat);
+
+}
+
+function DeleteAttribute(Name){
+var Dat=LoadAuxData();
+Dat[Name]=null;
+SaveAuxData(Dat);
+}
+
+function LoadStyleStuff(){
+
+UpdateStylesheet();
+}
+
+
+
+
+function UpdateStylesheet(){
+AddToggleToDelOptions();
+	RenderNodeColors();
+	RenderArrowColors();
+	RenderArrowSizes();
+	RenderReactionFonts();
+	RenderReactionFontColors();
+	AddStoredLine();
+	
+var PARENT=document.getElementsByTagName('defs')[0];
+var OldStyle=document.getElementById('NStyle');
+if(OldStyle==null){
+var OldStyle=document.createElement("style");
+OldStyle.id='NStyle';
+}
+StyleString='';
+
+StyleString+='svg.escher-svg .ANNoLine {stroke:black; stroke-width:5px;}svg.escher-svg .ANNoLine.selected{stroke:#87CEFA; stroke-width:8px;}';
+
+//Load unique style elements for node color
+Ulist=[];
+AssocArray=LoadAuxData()['Node_Color']
+for (n in AssocArray){
+if (Ulist.indexOf("ColN_"+AssocArray[n][0])==-1){
+Ulist.push("ColN_"+AssocArray[n][0])
+}
+
+}
+//build style string for Node color
+for(I in Ulist){
+var Col=Ulist[I].split('ColN_')[1]
+StyleString+='svg.escher-svg .'+Ulist[I].replace('#','')+' > .node-circle {fill:'+Col+'; stroke:'+MakeBorder(Col)+';}';
+
+}
+
+
+//Load unique style elements for segment color
+
+Ulist=[];
+AssocArray=LoadAuxData()['Arrow_Color']
+for (n in AssocArray){
+if (Ulist.indexOf("ColS_"+AssocArray[n][0])==-1){
+Ulist.push("ColS_"+AssocArray[n][0])
+}
+}
+
+//build style string for segment color
+for(I in Ulist){
+var Col=Ulist[I].split('ColS_')[1]
+StyleString+='svg.escher-svg .'+Ulist[I].replace('#','')+' > .segment {stroke:'+Col+';}';
+StyleString+='svg.escher-svg .'+Ulist[I].replace('#','')+' > .arrowheads .arrowhead {stroke:'+Col+'; fill:'+Col+';}';
+}
+
+Ulist=[];
+AssocArray=LoadAuxData()['Arrow_Size']
+for (n in AssocArray){
+if (Ulist.indexOf("ColBig_"+AssocArray[n])==-1){
+Ulist.push("ColBig_"+AssocArray[n])
+}
+}
+
+//build style string for segment color
+for(I in Ulist){
+var Col=Ulist[I].split('ColBig_')[1]
+StyleString+='svg.escher-svg .'+Ulist[I]+' > .segment {stroke-width:'+Col+';}';
+StyleString+='svg.escher-svg .'+Ulist[I]+' > .arrowheads .arrowhead {stroke-width:'+Col+';}';
+}
+
+Ulist=[];
+AssocArray=LoadAuxData()['Reaction_Fonts']
+for (n in AssocArray){
+if (Ulist.indexOf("FonL_"+AssocArray[n])==-1){
+Ulist.push("FonL_"+AssocArray[n])
+}
+}
+
+//build style string for fonts
+for(I in Ulist){
+var Col=Ulist[I].split('FonL_')[1]
+StyleString+='svg.escher-svg .'+Ulist[I]+' .label {font-size:'+Col+';}';
+
+}
+
+Ulist=[];
+AssocArray=LoadAuxData()['Font_Color']
+for (n in AssocArray){
+if (Ulist.indexOf("FonC_"+AssocArray[n])==-1){
+Ulist.push("FonC_"+AssocArray[n])
+}
+}
+
+//build style string for font color
+for(I in Ulist){
+var Col=Ulist[I].split('FonC_')[1]
+StyleString+='svg.escher-svg .'+Ulist[I].replace('#','')+' .label {fill:'+Col+';}';
+
+}
+
+
+
+
+OldStyle.innerHTML=StyleString;
+PARENT.appendChild(OldStyle);
+}
+
+function DefaultColors(){
+	//OtherOptionPanel.style.visibility='visible';
+	CompColorPanel.style.visibility='hidden';
+	var OldNodeMap=LoadAuxData()['Node_Color'];
+	var OldSegMap=LoadAuxData()['Arrow_Color'];
+	if (OldNodeMap==null){
+	OldNodeMap={};
+	}
+		if (OldSegMap==null){
+	OldSegMap={};
+	}
+	DeleteAttribute("Node_Color");
+	DeleteAttribute("Arrow_Color");
+	
+	for(n in OldNodeMap){
+	//n is node id
+	var Node=document.getElementById('n'+n);
+	OldClass=Node.getAttribute('class');
+	OldClass=OldClass.replace(/ColN_.*/,'');
+	Node.setAttribute('class',OldClass);
+	}
+	for(n in OldSegMap){
+	//n is node id
+	var Node=document.getElementById(n);
+	OldClass=Node.getAttribute('class');
+	OldClass=OldClass.replace(/ColS_.*/,'');
+	Node.setAttribute('class',OldClass);
+	}
+	
+	ColorMetabolitesComp();
+
+}
+
+function RenderNodeColors(){
+AssocArray=LoadAuxData()['Node_Color'];
+
+for(n in AssocArray){
+
+var Rhtml=document.getElementById('n'+n);
+
+OldClass=Rhtml.getAttribute('class');
+OldClass=OldClass.replace(/ColN_.* /,'');
+Rhtml.setAttribute('class',OldClass+' ColN_'+AssocArray[n][0].replace('#',''));
+}
+//UpdateStylesheet();
+
+}
+
+function RenderArrowSizes(){
+AssocArray=LoadAuxData()['Arrow_Size'];
+for(n in AssocArray){
+var Rhtml=document.getElementById(n);
+OldClass=Rhtml.getAttribute('class');
+OldClass=OldClass.replace(/ColBig_.* /,'');
+Rhtml.setAttribute('class',OldClass+' ColBig_'+AssocArray[n]);
+}
+
+}
+
+
+function RenderArrowColors(){
+AssocArray=LoadAuxData()['Arrow_Color'];
+
+for(n in AssocArray){
+var Rhtml=document.getElementById(n);
+OldClass=Rhtml.getAttribute('class');
+OldClass=OldClass.replace(/ColS_.* /,'');
+Rhtml.setAttribute('class',OldClass+' ColS_'+AssocArray[n][0].replace('#',''));
+}
+//UpdateStylesheet();
+
+
+}
+
+
+
+function SelectedNodeColorClicled(){
+//Get selected nodes as list
+//if any selected open color picker 2 or 3 or whatever
+//when color picked, color selected nodes by RenderNodeColors, Update node colors in the store
+//Then update the stylesheet
+var NODEHTML=document.getElementsByClassName('node selected');
+var RealID=[];
+for(var i=0 ; i<NODEHTML.length;i++){
+var Class = NODEHTML[i].childNodes[0].className.baseVal;
+if(Class.indexOf('metabolite-circle')!=-1){
+RealID.push(NODEHTML[i].id);
+}
+
+
+} 
+
+if(RealID.length>0){
+OpenSelNodeColorPicker(RealID);
+}
+
+
+}
+
+
+
+function RenderReactionFonts(){
+AssocArray=LoadAuxData()['Reaction_Fonts'];
+for(n in AssocArray){
+
+var Rhtml=document.getElementById(n);
+
+OldClass=Rhtml.getAttribute('class');
+OldClass=OldClass.replace(/FonL_.* /,'');
+Rhtml.setAttribute('class',OldClass+' FonL_'+AssocArray[n]);
+
+}
+
+}
+
+function RenderReactionFontColors(){
+AssocArray=LoadAuxData()['Font_Color'];
+for(n in AssocArray){
+
+var Rhtml=document.getElementById(n);
+
+OldClass=Rhtml.getAttribute('class');
+OldClass=OldClass.replace(/FonC_.* /,'');
+Rhtml.setAttribute('class',OldClass+' FonC_'+AssocArray[n].replace('#',''));
+
+}
+
+}
+
+function ChangeReactionColor(){
+OpenReactionColorer();
+
+}
+function CloseFontColorPicker(Color){
+ColorPickerTwo.style.visibility='hidden';
+	Pickertwo.width=0;
+	Pickertwo.height=0;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	var NODEHTML=document.getElementsByClassName('node selected');
+	var REACTIONID=[];
+	for (var n=0; n<NODEHTML.length; n++){
+		if(NODEHTML[n].childNodes[0].className.baseVal.indexOf('metabolite-circle')!=-1){
+		REACTIONID.push(NODEHTML[n].id)
+		}
+		else if(NODEHTML[n].childNodes[0].className.baseVal.indexOf('midmarker-circle')!=-1){
+		var ID = NODEHTML[n].id.substring(1);
+		var NODE = BUILDER.map.nodes[ID];
+		REACTIONID.push('r'+NODE.connected_segments[0].reaction_id);
+		}
+		}
+	var OLabs=document.getElementsByClassName('text-label selected');
+		for (var n=0; n<OLabs.length; n++){
+		REACTIONID.push(OLabs[n].id);
+		}
+		
+		
+	
+	var OldFonts=LoadAuxData()['Font_Color'];
+	if (OldFonts==null){
+	OldFonts={};
+	}
+	for(var n=0;n<REACTIONID.length;n++){
+	OldFonts[REACTIONID[n]]=Color; //is an associateive array, element ID and font size
+	}
+	SaveAppend('Font_Color',OldFonts);
+
+}
+function ChangeReactionFontSize(){
+//Changes the font size of any selected node's label
+//for metabolites the label is stored with the metabolite
+//for reactions, the label is stored in the reaction-label-group for the reaction
+//WIll do it by class and stylesheet modificaiton
+	var fontsize= prompt('Set font size for selected nodes','30px');
+	if (fontsize.indexOf('px')==-1){
+		fontsize=fontsize+'px';
+	}
+	var NODEHTML=document.getElementsByClassName('node selected');
+	var REACTIONID=[];
+	for (var n=0; n<NODEHTML.length; n++){
+		if(NODEHTML[n].childNodes[0].className.baseVal.indexOf('metabolite-circle')!=-1){
+		REACTIONID.push(NODEHTML[n].id)
+		}
+		else if(NODEHTML[n].childNodes[0].className.baseVal.indexOf('midmarker-circle')!=-1){
+		var ID = NODEHTML[n].id.substring(1);
+		var NODE = BUILDER.map.nodes[ID];
+		REACTIONID.push('r'+NODE.connected_segments[0].reaction_id);
+		}
+		}
+		var OLabs=document.getElementsByClassName('text-label selected');
+		for (var n=0; n<OLabs.length; n++){
+		REACTIONID.push(OLabs[n].id);
+		}
+		
+	
+	var OldFonts=LoadAuxData()['Reaction_Fonts'];
+	if (OldFonts==null){
+	OldFonts={};
+	}
+	for(var n=0;n<REACTIONID.length;n++){
+	OldFonts[REACTIONID[n]]=fontsize; //is an associateive array, element ID and font size
+	}
+	SaveAppend('Reaction_Fonts',OldFonts);
+	//RenderReactionFonts();
+	
+	/*
+	for(var n=0;n<REACTIONID.length;n++){
+		var Rhtml=document.getElementById('r'+REACTIONID[n]);
+		var OldClass=Rhtml.childNodes[0].childNodes[1].getAttribute('class').split('ReacFont_')[0];
+		Rhtml.childNodes[0].childNodes[1].setAttribute('class',OldClass+' ReacFont_'+fontsize)
+	}
+	var PARENT=document.getElementsByTagName('defs')[0];
+	var OldStyle=document.getElementById('FONTS');
+	if(OldStyle==null){
+		var OldStyle=document.createElement("style");
+		OldStyle.id='FONTS';
+	}
+	var StyleString='';
+	StyleString=StyleString+'svg.escher-svg .ReacFont_'+fontsize+'{font-size:'+fontsize+';} ';
+	OldStyle.innerHTML=OldStyle.innerHTML+StyleString;
+	PARENT.appendChild(OldStyle);
+	SaveAppend('FONTS',OldStyle.innerHTML);//should be a map of reaction ID to size*/
+}
+
+
+
+
+
+function ColorMetabolitesComp(){
+HideAll();
+	CompColorPanel.style.visibility='visible';
+
+	var MapNodes=BUILDER.map['nodes'];
+	var MapNodesNames=Object.keys(MapNodes);
+	CatagoryType=[];
+	CompColor={};
+	for(var i=0;i<MapNodesNames.length;i++){
+		if (MapNodes[MapNodesNames[i]]['node_type']=='metabolite'){
+			ID=MapNodes[MapNodesNames[i]]['bigg_id'];
+			Cat=ID.substr(ID.length-1);
+			if(CatagoryType.indexOf(Cat)==-1){
+				CatagoryType.push(Cat);
+				Node=document.getElementById('n'+MapNodesNames[i])
+				CompColor[Cat]=window.getComputedStyle( Node.childNodes[0] , null).getPropertyValue( 'fill' );
+			}
+		}}
+		
+
+	for (var key in CompColor) {
+		if(document.getElementById('Comp_'+key)===null){
+			var B=document.createElement('button');
+			B.setAttribute('onclick','ChangeColor(this)');
+			B.setAttribute('style','background-color:'+CompColor[key]+';');
+			B.id='Comp_'+key;
+			B.textContent=key;
+			CompColorPanel.appendChild(B);
+		}
+		else{
+			var B=document.getElementById('Comp_'+key);
+			B.setAttribute('style','background-color:'+CompColor[key]+';');
+
+
+		}
+	}
+
+	//ColorSegments();
+
+}
+function Cancel(){
+CompColorPanel.style.visibility='hidden';
+ToggleButtons();
+
+}
+
+function CompCloseColors(){
+	//OtherOptionPanel.style.visibility='visible';
+	//CompColorPanel.style.visibility='hidden';
+	
+	var Node_Color={};
+	
+	
+	
+	var MapNodes=BUILDER.map['nodes'];
+	var MapNodesNames=Object.keys(MapNodes);
+
+	
+	for(var i=0;i<MapNodesNames.length;i++){
+		if (MapNodes[MapNodesNames[i]]['node_type']=='metabolite'){
+			ID=MapNodes[MapNodesNames[i]]['bigg_id'];
+			Cat=ID.substr(ID.length-1);
+			Node_Color[MapNodesNames[i]]=[CompColor[Cat],MakeBorder(CompColor[Cat])];
+		}}
+		
+	SaveAppend('Node_Color',Node_Color);
+
+	
+	if(SegsAlso.checked){
+		ColorSegments(CompColor);
+	}
+	 Cancel();
+}	
+
+
+
+function CloseSelectPicker(NodeIds,Color){
+	ColorPickerTwo.style.visibility='hidden';
+	Pickertwo.width=0;
+	Pickertwo.height=0;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	var OldNodes=LoadAuxData()['Node_Color'];
+	if(OldNodes==null){
+	OldNodes={};
+	}
+	
+	for(N in NodeIds){
+	OldNodes[NodeIds[N].substr(1)]=[Color,MakeBorder(Color)];
+	}
+	
+	SaveAppend('Node_Color',OldNodes);
+
+}
+
+//?????????????????????????????
+function ApplySegSize(SegID,size){
+var OldNodes=LoadAuxData()['Arrow_Size'];
+if(OldNodes==null){
+	OldNodes={};
+	}
+	for(N in SegID){
+	OldNodes[SegID[N]]=size;
+	}
+
+	SaveAppend('Arrow_Size',OldNodes);
+	
+
+}
+
+
+function CloseSegSelectPicker(SegIds,Color){
+ColorPickerTwo.style.visibility='hidden';
+	Pickertwo.width=0;
+	Pickertwo.height=0;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	var OldNodes=LoadAuxData()['Arrow_Color'];
+	if(OldNodes==null){
+	OldNodes={};
+	}
+	for(N in SegIds){
+	OldNodes[SegIds[N]]=[Color,MakeBorder(Color)];
+	}
+	
+	SaveAppend('Arrow_Color',OldNodes);
+	RenderArrowColors(OldNodes);
+
+}
+
+function ColorSegments(CompColor){
+	//var Segs=document.getElementsByClassName('segment');
+
+	var MapReactions=BUILDER.map['reactions'];
+	var RKeys=Object.keys(MapReactions);
+	var MapNodes=BUILDER.map['nodes'];
+	var MapNodesNames=Object.keys(MapNodes);
+	
+	
+	var Arrow_Color={};
+	for (var i=0;i<RKeys.length;i++){
+		Reaction=MapReactions[RKeys[i]];
+
+		var Segs=Reaction['segments'];
+		var Skeys=Object.keys(Segs);
+		for(var j=0;j<Skeys.length;j++){
+
+			var Segment=Segs[Skeys[j]];
+			var SID='s'+Segment['segment_id'];
+			var ShortList=[Segment['to_node_id'],Segment['from_node_id']]
+			for(var k=0; k<ShortList.length;k++){
+			if(MapNodes[ShortList[k]]['node_type']=='metabolite'){
+				ID=MapNodes[ShortList[k]]['bigg_id'];
+				Cat=ID.substr(ID.length-1);
+				Arrow_Color[SID]=[CompColor[Cat],MakeBorder(CompColor[Cat])];
+				
+			}
+			}
+
+			}
+
+		}
+
+	
+	SaveAppend('Arrow_Color',Arrow_Color);
+	RenderArrowColors(Arrow_Color);
+		
+		
+}
+
+function GetSegs(){
+var NODEHTML=document.getElementsByClassName('node selected');
+var IDLIST=[];
+for(n=0; n<NODEHTML.length;n++){
+IDLIST.push(NODEHTML[n].id.substr(1))
+}
+//Need to ge the list of segments which are selected by returning the segments which have both nodes selected
+var SegID=[];
+	var MapReactions=BUILDER.map['reactions'];
+	var RKeys=Object.keys(MapReactions);
+	
+	for (var i=0;i<RKeys.length;i++){
+		Reaction=MapReactions[RKeys[i]];
+		var Segs=Reaction['segments'];
+		var Skeys=Object.keys(Segs);
+		for(var j=0;j<Skeys.length;j++){
+		var Segment=Segs[Skeys[j]];
+		var SID='s'+Segment['segment_id'];
+		if(IDLIST.indexOf(Segment['to_node_id'])!=-1 && IDLIST.indexOf(Segment['from_node_id'])!=-1){
+		SegID.push(SID);
+		}
+		
+		}
+		}
+		return SegID
+}
+function SelectedSegmentsColorClicked(){
+var SegID=GetSegs();
+
+if(SegID.length>0){
+OpenSelSegColorPicker(SegID);
+}
+
+}
+
+function ResizeArrow(){
+var SegID=GetSegs();
+
+if(SegID.length>0){
+var size=prompt("Input new arrow size (default is 10)",10);
+if(size!=null){
+ApplySegSize(SegID,size);
+
+}
+}
+
+
+}
+
+function ChangeName(){
+	var oldname=BUILDER.map['map_name'];
+	var name=prompt("Input new map name",oldname);
+	if (name!=null){
+		BUILDER.map['map_name']=name;
+	}
+}
+
+function AddToCurrent(){
+	var ID= Clicked.id.split('_r')[1];
+	if(typeof(Extra[ID])!=='undefined'){
+		var Old= Extra[ID];
+	}
+	else{
+		Old=[];
+	}
+	var Add=prompt('Enter the row name to add to heatmap '+ID, '');
+	Old.push(Add);
+	Extra[ID]=Old;
+	DenisDrawHeatMap();
+}
+function replaceAll(find, replace, str) {
+	return str.replace(new RegExp(escapeRegExp(find), 'g'), replace);
+}
+function escapeRegExp(string) {
+	return string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+}
+
+function DrawKeyDenis(context){
+context.clearRect(0,0,context.canvas.width,context.canvas.height);
+	///////
+	////////
+	if(DenisCollectionDataColumns.length>0){
+		if(!(BinMe&&BinKey)){
+			MAX=parseFloat(DenisCollectionDataColumns[0][2]);
+			MIN=parseFloat(DenisCollectionDataColumns[0][2]);
+			for(var i=0;i<DenisCollectionDataColumns.length;i++){
+				for(var j=2;j<DenisCollectionDataColumns[i].length+2;j++){
+					if(!isNaN(parseFloat(DenisCollectionDataColumns[i][j]))  ){
+						if(isNaN(MAX)){
+							MAX=parseFloat(DenisCollectionDataColumns[i][j]);
+							MIN=parseFloat(DenisCollectionDataColumns[i][j]);
+						}
+						MAX=Math.max(MAX,parseFloat(DenisCollectionDataColumns[i][j]));
+						MIN=Math.min(MIN,parseFloat(DenisCollectionDataColumns[i][j]));
+					}
+				}}
+		}
+		else{
+			MIN=BinValues[0]-BinStep;
+			MAX=BinValues[BinValues.length-1]+BinStep;
+		}
+		RANGE=MAX-MIN;
+		OurBar.UpdatePoles(MIN,MAX);
+		//OK blue at MIN, Red at max.
+		//Want Max at top, Min at bottom
+		context.font="10px sans-serif";
+		var Xpos=0;
+		var Leap=1;
+		var NumberofSteps=135;
+		var OY=-NumberofSteps;
+		for(var i=0;i<NumberofSteps;i++){
+			//Translate i to RANGE so i=0 = MIN, i=100 = MAX
+			if(BinMe){
+				var Value=MakeBin(MAX-RANGE/NumberofSteps*i);
+			}
+			else{
+				var Value=MAX-RANGE/NumberofSteps*i;
+			}
+			//console.log(MIN);
+			var Ypos=i*Leap+10;
+			if(Ypos-OY>10){
+				OY=Ypos;
+				context.fillStyle=rgbToHex(0, 0, 0);
+				context.fillText(Math.round(Value*100)/100,Xpos+10,Ypos);
+			}
+			context.strokeStyle=OurBar.GetColor(Value);
+			context.beginPath();
+			context.moveTo(Xpos,Ypos);
+			context.lineTo(Xpos+10,Ypos);
+			context.stroke();
+			//context.fillRect(Xpos,Ypos,10,Leap);
+		}
+	}
+}
+function DrawKey(context){
+	context.clearRect(0,0,context.canvas.width,context.canvas.height);
+	///////
+	////////
+	if(UseTable.length>0){
+		if(!(BinMe&&BinKey)){
+			MAX=parseFloat(UseTable[0][0]);
+			MIN=parseFloat(UseTable[0][0]);
+			for(var i=0;i<UseRowHeaders.length;i++){
+				for(var j=0;j<UseColumnHeaders.length;j++){
+					if(!isNaN(parseFloat(UseTable[i][j]))  ){
+						if(isNaN(MAX)){
+							MAX=parseFloat(UseTable[i][j]);
+							MIN=parseFloat(UseTable[i][j]);
+						}
+						MAX=Math.max(MAX,parseFloat(UseTable[i][j]));
+						MIN=Math.min(MIN,parseFloat(UseTable[i][j]));
+					}
+				}}
+		}
+		else{
+			MIN=BinValues[0]-BinStep;
+			MAX=BinValues[BinValues.length-1]+BinStep;
+		}
+		RANGE=MAX-MIN;
+		OurBar.UpdatePoles(MIN,MAX);
+		//OK blue at MIN, Red at max.
+		//Want Max at top, Min at bottom
+		context.font="10px sans-serif";
+		var Xpos=0;
+		var Leap=1;
+		var NumberofSteps=135;
+		var OY=-NumberofSteps;
+		for(var i=0;i<NumberofSteps;i++){
+			//Translate i to RANGE so i=0 = MIN, i=100 = MAX
+			if(BinMe){
+				var Value=MakeBin(MAX-RANGE/NumberofSteps*i);
+			}
+			else{
+				var Value=MAX-RANGE/NumberofSteps*i;
+			}
+			//console.log(MIN);
+			var Ypos=i*Leap+10;
+			if(Ypos-OY>10){
+				OY=Ypos;
+				context.fillStyle=rgbToHex(0, 0, 0);
+				context.fillText(Math.round(Value*100)/100,Xpos+10,Ypos);
+			}
+			context.strokeStyle=OurBar.GetColor(Value);
+			context.beginPath();
+			context.moveTo(Xpos,Ypos);
+			context.lineTo(Xpos+10,Ypos);
+			context.stroke();
+			//context.fillRect(Xpos,Ypos,10,Leap);
+		}
+	}
+}
+
+
+function PopUseTable(){
+	Selected={'type':'none','data':[]};
+	if(ShowCsvId){
+		var PRowHeaders=[];
+		for(var i=0;i<RowHeaders.length;i++){
+			PRowHeaders.push(RowHeaders[i]+'\t\t\t'+String(i+2));
+		}
+		var PColHeaders=[];
+		for(var i=0;i<ColumnHeaders.length;i++){
+			PColHeaders.push(ColumnHeaders[i]+'\t\t\t'+String(i+2));
+		}
+	}
+	else{
+		var PRowHeaders=RowHeaders;
+		var PColHeaders=ColumnHeaders;
+	}
+	if (RowLimiter.length==0){
+		var TempTable=DataTable;
+		UseRowHeaders=PRowHeaders;
+	}
+	else{
+		if((Math.sign(RowLimiter[0])==-1) || (Math.atan2(0,Math.sign(RowLimiter[0]))==Math.PI)){ //checking for +0 or -0
+			var TempTable=[];
+			UseRowHeaders=[];
+			for(var i=0;i<PRowHeaders.length;i++){
+				if (RowLimiter.indexOf(-i)==-1){
+					TempTable.push(DataTable[i]);
+					UseRowHeaders.push(PRowHeaders[i]);
+				}
+			}
+		}
+		else{
+			var TempTable=[];
+			UseRowHeaders=[];
+			for(var i=0;i<RowLimiter.length;i++){
+				if(typeof PRowHeaders[RowLimiter[i]]!=='undefined'){
+					TempTable.push(DataTable[RowLimiter[i]]);
+					UseRowHeaders.push(PRowHeaders[RowLimiter[i]]);}
+			} 
+		}
+	}
+	if(ColumnLimiter.length==0){
+		UseTable=TempTable;
+		UseColumnHeaders=PColHeaders;
+	}
+	else{
+		if((Math.sign(ColumnLimiter[0])==-1 )||(Math.atan2(0,Math.sign(ColumnLimiter[0]))==Math.PI)){
+			UseTable=[];
+			UseColumnHeaders=[];
+			for(var i=0; i<TempTable.length;i++){
+				var row=[];
+				for(var j=0;j<PColHeaders.length;j++){
+					if (ColumnLimiter.indexOf(-j)==-1){
+						row.push(TempTable[i][j]);
+					}
+				}
+				if(row.length!=0){
+					UseTable.push(row);
+				}
+			}
+			for(var j=0;j<PColHeaders.length;j++){
+				if (ColumnLimiter.indexOf(-j)==-1){
+					UseColumnHeaders.push(PColHeaders[j]);
+				}
+			}
+		}
+		else{
+			UseTable=[];
+			UseColumnHeaders=[];
+			for(var j=0;j<TempTable.length;j++){
+				row=[];
+				for(var i=0;i<ColumnLimiter.length;i++){
+					if(typeof PColHeaders[ColumnLimiter[i]]!=='undefined'){
+						row.push(TempTable[j][ColumnLimiter[i]])
+					}
+				}
+				if(row.length!=0){
+					UseTable.push(row);
+				}
+			}
+			for(var i=0;i<ColumnLimiter.length;i++){
+				if(typeof PColHeaders[ColumnLimiter[i]]!=='undefined'){
+					UseColumnHeaders.push(PColHeaders[ColumnLimiter[i]]);}
+			}
+		}
+	}
+	DrawCurrentBar(ColorContext);
+	//var context=Key.getContext('2d');
+	//DrawKey(context);
+	//DrawHeatMap();
+}
+function TranslateDataArray(){
+	DataTable=[];
+	for(var i=0;i<RawData.length;i++){
+		DataTable.push(RawData[i].slice());
+	}
+	if(IsLog){
+		for(var i=0;i<DataTable.length;i++){
+			for(var j=0;j<DataTable[i].length;j++){
+				if(parseFloat(DataTable[i][j])!=0){
+					DataTable[i][j]=Math.log2(parseFloat(DataTable[i][j]));
+				}
+				else{
+					DataTable[i][j]=NaN;
+					console.log(parseFloat(DataTable[i][j]),DataTable[i][j],i,j)
+				}
+			}
+		}
+	}
+	if(BinMe){
+		for(var i=0;i<DataTable.length;i++){
+			for(var j=0;j<DataTable[i].length;j++){
+				var NN=MakeBin(DataTable[i][j]);
+				//console.log(NN);
+				DataTable[i][j]=NN;
+			}
+		}
+	}
+	PopUseTable();
+	//if(ColorOpen){
+	//PopUseTable();
+	//DrawCurrentBar(ColorContext);}
+	//else{
+	//PopUseTable();
+	
+	//}
+}
+
+
+function handleFileSelectDenis(evt) {
+/*
+CSV layed out like this:
+
+Column 0 is headers 
+row 0 is headers
+
+Column 1 row 3 onward is strain name
+column 2 row 3 onward is timepoint (dawn dusk but can be more flexable)
+
+row 1 column 3 onwards is pt3ID (key used in actual esher map)
+row 2 column 3 onwards is display name (use this as the label unless it's blank, and then use pt3id)
+row 3 onwards column 3 onwards is data value for the gene and stain and timepoint 
+	Strain	Timepoint					
+PT3ID			311550	306012	311846	307814	312000
+DisplayName			Phatrdraft3_XXXXX	Phatrdraft3_YYYYY	My Special Name	Another One	
+	WT	DAWN	0	3	0	0.2	4
+	a8	DAWN	0.5	2	-1	0.3	3
+	b6	DAWN	0.1	3	-1	0.4	4.2
+	WT	DUSK	0	3	2	1.9	2
+	a8	DUSK	-0.7	-4	2	2.1	-1
+	b6	DUSK	-1.2	-1.5	2	2.7	-2
+
+
+
+*/
+
+
+
+DenisStrainColumn=[];
+DenisTimepointColumn=[];
+DenisCollectionDataColumns =[]; //each contains an array
+DenisRuleArray =[];
+//	RowHeaders=[];
+//	ColumnHeaders=[];
+//	RawData=[];
+	f = evt.target.files[0]; // FileList object
+	//console.log(file);
+	reader = new FileReader();
+	reader.onload = function(e){
+		contents = e.target.result.split('\r');
+		
+
+		
+		
+		
+		var FirstRow=0;
+		
+		for(var i=1; i<contents.length; i++){
+			//Code taken from
+			
+			//**********************************http://stackoverflow.com/questions/11456850/split-a-string-by-commas-but-ignore-commas-within-double-quotes-using-javascript
+			 var TmpString=contents[i].replace(',',"'',");
+			var arr = TmpString.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+	
+
+			 arr = arr || [];
+			 console.log(arr);
+			
+			// this will prevent JS from throwing an error in
+			// the below loop when there are no matches
+			var Cells = arr; 
+			if (Cells.length > 1){
+			if(i==1){
+			for(var j=1; j<Cells.length; j++){
+			var DCol = [];
+			DCol.push(Cells[j]);
+			DenisRuleArray.push(Cells[j]);
+			DenisCollectionDataColumns.push(DCol)
+			}
+	
+			}
+			else if(i==2){
+				for(var j=1; j<DenisRuleArray.length+1; j++){
+				if(j >= Cells.length){
+				DenisCollectionDataColumns[j-1].push(DenisCollectionDataColumns[j-1][0]);
+				}
+				else{
+				
+				
+				if(Cells[j]==""){
+				DenisCollectionDataColumns[j-1].push(DenisCollectionDataColumns[j-1][0]);
+				}
+				else{
+				DenisCollectionDataColumns[j-1].push(Cells[j]);
+				}
+				}
+			}
+			}
+			else{
+			DenisStrainColumn.push(Cells[1]);
+			DenisTimepointColumn.push(Cells[2]);
+			for(var j=3; j<Cells.length; j++){
+			
+				DenisCollectionDataColumns[j-3].push(Cells[j]);
+				
+			}
+			
+			}
+			
+			
+			
+			
+		}
+		}
+	//	TranslateDataArray();
+	//DenisPopUseTable();
+	DenisDrawHeatMap();
+	}
+	if(typeof(f)!=='undefined'){
+		reader.readAsText(f);
+	}
+}
+
+function handleFileSelect(evt) {
+	//var BODY=document.getElementById('Display');
+	//var BBB=BODY.cloneNode(false);
+	//BODY.parentNode.replaceChild(BBB ,BODY);
+	RowHeaders=[];
+	ColumnHeaders=[];
+	RawData=[];
+	f = evt.target.files[0]; // FileList object
+	//console.log(file);
+	reader = new FileReader();
+	reader.onload = function(e){
+		contents = e.target.result.split('\r');
+		var FirstRow=0;
+		
+		for(var i=ColLabels; i<contents.length; i++){
+			//Code taken from
+			
+			//**********************************http://stackoverflow.com/questions/11456850/split-a-string-by-commas-but-ignore-commas-within-double-quotes-using-javascript
+			var TmpString=contents[i].replace(',',"'',");
+			var arr = TmpString.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+	
+	//contents[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+			/* will match:
+	(
+		".*?"       double quotes + anything but double quotes + double quotes
+		|           OR
+		[^",]+    1 or more characters excl. double quotes, comma or spaces of any kind
+	)
+	(?=             FOLLOWED BY
+		\s*,        0 or more empty spaces and a comma
+		|           OR
+		\s*$        0 or more empty spaces and nothing else (end of string)
+	)
+*/
+			arr = arr || [];
+			// this will prevent JS from throwing an error in
+			// the below loop when there are no matches
+			var Cells = arr; 
+			if (Cells.length > 1){
+				if(FirstRow==0){
+					FirstRow=1;
+					for(var j=0;j<RowNames;j++){
+						Cells.shift();
+					}
+					Cells.shift();
+					ColumnHeaders=Cells;
+				}
+				else{
+					for(var j=0;j<RowNames;j++){
+						Cells.shift();
+					}
+					RowHeaders.push(Cells.shift().replace("''","").replace('\n','').replace('\r',''));
+					RawData.push(Cells);
+				}
+			}
+		}
+		TranslateDataArray();
+	}
+	if(typeof(f)!=='undefined'){
+		reader.readAsText(f);
+	}
+}
+function ResetHeat(){
+	Extra={};
+	DenisDrawHeatMap();
+} 
+function CloseColor(){
+	ColorMenu.style.visibility='hidden';
+}
+
+function MakeBorder(InColor){
+	var R = parseInt(InColor.substring(1,3),16);
+    var G = parseInt(InColor.substring(3,5),16);
+    var B = parseInt(InColor.substring(5,7),16);
+    R = parseInt(R * (100 + -20) / 100);
+    G = parseInt(G * (100 + -20) / 100);
+    B = parseInt(B * (100 + -20) / 100);
+    R = (R<255)?R:255;  
+    G = (G<255)?G:255;  
+    B = (B<255)?B:255;  
+    var RR = ((R.toString(16).length==1)?"0"+R.toString(16):R.toString(16));
+    var GG = ((G.toString(16).length==1)?"0"+G.toString(16):G.toString(16));
+    var BB = ((B.toString(16).length==1)?"0"+B.toString(16):B.toString(16));
+    return "#"+RR+GG+BB;
+}
+
+
+ 
+function AddPole(){
+	OurBar.AddPole();
+	DrawCurrentBar(ColorContext);
+}
+function OpenColorPicker(COLOR,PosX,PosY,WhichBar){
+	//console.log('Opening Picker',WhichBar);
+	if(PosX > slide.width-300){
+		PosX=PosX-300;
+	}
+	ColorPicker.style.visibility='visible';
+	//COLOR is an rgb array [r,g,b]
+	Pcontext=Picker.getContext('2d');
+	Picker.setAttribute('style',"position:absolute; left:"+PosX+"px; top:"+PosY+"px;");
+	Picker.width=350;
+	Picker.height=200;
+	Pcontext.fillStyle=rgbToHex(25,25,25);
+	Pcontext.fillRect(0,0,Pcontext.canvas.width,Pcontext.canvas.height);
+	//Thanks to http://seesparkbox.com/foundry/how_i_built_a_canvas_color_picker
+	var gradient = Pcontext.createLinearGradient(5,5,Picker.width-80,5);
+	gradient.addColorStop(0,    "rgb(255,   0,   0)");
+	gradient.addColorStop(0.15, "rgb(255,   0, 255)");
+	gradient.addColorStop(0.33, "rgb(0,     0, 255)");
+	gradient.addColorStop(0.49, "rgb(0,   255, 255)");
+	gradient.addColorStop(0.67, "rgb(0,   255,   0)");
+	gradient.addColorStop(0.84, "rgb(255, 255,   0)");
+	gradient.addColorStop(1,    "rgb(255,   0,   0)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient = Pcontext.createLinearGradient(0, 5, 0, Pcontext.canvas.height-10);
+	gradient.addColorStop(0,   "rgba(255, 255, 255, 1)");
+	gradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
+	gradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
+	gradient.addColorStop(1,   "rgba(0,     0,   0, 1)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	Pcontext.fillStyle=rgbToHex(210,210,210);
+	Pcontext.fillRect(Pcontext.canvas.width-50,Pcontext.canvas.height-30,40,20);
+	Pcontext.fillStyle=rgbToHex(0,0,0);
+	Pcontext.font="8px sans-serif";
+	Pcontext.fillText('Confirm',Pcontext.canvas.width-50+5,Pcontext.canvas.height-30+10);
+	Pcontext.fillStyle=rgbToHex(COLOR[0],COLOR[1],COLOR[2]);
+	Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient.addColorStop(0,    "rgb(0,   0,   0)");
+	gradient.addColorStop(.5,   rgbToHex(COLOR[0],COLOR[1],COLOR[2]));
+	gradient.addColorStop(1,    "rgb(255,   255,   255)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+	PickDown=false;
+	if(typeof PMD !== 'undefined'){
+		Picker.removeEventListener('mousedown', PMD);
+		Picker.removeEventListener('mousemove', PMM);
+		Picker.removeEventListener('mouseleave', PML);
+		Picker.removeEventListener('mouseup', PMU);
+	}
+	Picker.addEventListener('mousedown', PMD=function(evt) {
+		PickDown=true;
+		var rect = Picker.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+			var c = Pcontext.getImageData(x, y, 1, 1).data;
+			COLOR[0]=c[0];
+			COLOR[1]=c[1];
+			COLOR[2]=c[2];
+			Pcontext.fillStyle=rgbToHex(COLOR[0],COLOR[1],COLOR[2]);
+			Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+		}
+		if((x>Pcontext.canvas.width-50)&&(x<Pcontext.canvas.width-50+40)&&(y>Pcontext.canvas.height-30)&&(y<Pcontext.canvas.height-30+20)){
+			ClosePicker(WhichBar,COLOR);
+		}
+	});
+	Picker.addEventListener('mousemove', PMM=function(evt) {
+		if(PickDown==true){
+			var rect = Picker.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+				var c = Pcontext.getImageData(x, y, 1, 1).data;
+				COLOR[0]=c[0];
+				COLOR[1]=c[1];
+				COLOR[2]=c[2];
+				Pcontext.fillStyle=rgbToHex(COLOR[0],COLOR[1],COLOR[2]);
+				Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+			}
+		}
+	});
+	Picker.addEventListener('mouseleave', PML=function(evt) {
+		if(PickDown==true){
+			var rect = Picker.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			PickDown=false;
+			if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+			}
+			else if (x>Pcontext.canvas.width-60){
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}
+			else{
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}}});
+	Picker.addEventListener('mouseup', PMU=function(evt) {
+		var rect = Picker.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		PickDown=false;
+		if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+		}
+		else if (x>Pcontext.canvas.width-60){
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}
+		else{
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}});
+}
+function ClosePicker(WhichBar,Cin){
+	ColorPicker.style.visibility='hidden';
+	//console.log('In Close Picker',WhichBar);
+	OurBar.polecolor[WhichBar][0]=parseInt(Cin[0]);
+	OurBar.polecolor[WhichBar][1]=parseInt(Cin[1]);
+	OurBar.polecolor[WhichBar][2]=parseInt(Cin[2]);
+	NoMore=false;
+	DrawCurrentBar(ColorContext);
+}
+function GenerateBinValues(){
+	BinValues=[];
+	BinMin=-4;
+	BinMax=4;
+	BinStep=.25;
+	BinRange=BinMax-BinMin;
+	NumSteps=BinRange/BinStep;
+	for(var i=0;i<=NumSteps;i++){
+		BinValues.push(BinMin+(i*BinStep));
+	}
+} 	
+function MakeBin(NumberHere){
+	NumToBin=parseFloat(NumberHere);
+	Binned=NaN;
+	//if(NumToBin<=BinValues[0]){
+	//Binned=BinValues[0];
+	//}
+	if(NumToBin>=BinValues[BinValues.length-1]){
+		Binned=BinValues[BinValues.length-1]+BinStep;
+	}
+	else if(NumToBin<=BinValues[0]){
+		Binned=BinValues[0]-BinStep;
+	}
+	else{
+		for(var i=0;i<BinValues.length;i++){
+			if(NumToBin<=BinValues[i]){
+				Binned=BinValues[i];
+				if(i>0){//round to nearest bin
+					var Prev=BinValues[i-1];
+					if(Math.abs(NumToBin-Prev)<Math.abs(NumToBin-BinValues[i])){
+						Binned=BinValues[i-1];
+					}
+				}
+				//Binned=BinValues[i];
+				break
+			}
+		}
+	}
+	//console.log(Binned);
+	return Binned
+}  
+function ToggleNodes(){
+	if(NodesButton.textContent=='Bigger Internal Nodes'){
+		NodesButton.textContent='Smaller Internal Nodes';
+		BUILDER.options.marker_radius=15;
+		BUILDER.zoom_mode(); //Refreshes the drawing, probably exists an official way to do this
+	}
+	else{
+		NodesButton.textContent='Bigger Internal Nodes';
+		ops={menu:'all',fill_screen:true,use_3d_transform:true,scroll_behavior:"zoom"};
+		BUILDER.options.marker_radius=5;
+		BUILDER.zoom_mode();
+	}
+}
+function componentToHex(c) {
+	var hex = c.toString(16);
+	return hex.length == 1 ? "0" + hex : hex;
+}
+function rgbToHex(r, g, b) {
+	return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+	//Thanks to Tim Down at http://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+}
+function DrawCurrentBar(ctx){
+	DenisDrawHeatMap();
+	if(ctx!=null){
+		ColorChooserRec=[];
+		PollTracker=[];
+		KillRect=[];
+		InputRect=[];
+		ctx.font="10px sans-serif";
+		ctx.fillStyle=rgbToHex(255,255,255);
+		ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
+		var LeftX=50;
+		var RightX=ctx.canvas.width-50;
+		ctx.strokeStyle=rgbToHex(0,0,0);
+		ctx.beginPath();
+		ctx.moveTo(LeftX,100);
+		ctx.lineTo(RightX,100);
+		ctx.stroke();
+		ctx.fillStyle=rgbToHex(25,25,25);
+		ctx.fillRect(LeftX,60,5,80);
+		ctx.fillRect(RightX,60,5,80);
+		var BarRange=RightX-LeftX;
+		for( var i=0;i<OurBar.pole.length;i++){
+			var PerAlong=OurBar.pole[i]/100;
+			var Xpos=LeftX+BarRange*PerAlong;
+			ColorChooserRec.push([Xpos,30,i]);
+			ctx.fillStyle=OurBar.GetColor(OurBar.polevalue[i]);
+			ctx.fillRect(Xpos,30,10,10);
+			ctx.fillStyle=rgbToHex(0,0,0);
+			if(OurBar.fixed[i]=='p'){
+				ctx.fillText(Math.round(OurBar.pole[i]*100)/100+'%',Xpos,59);
+			}
+			if(OurBar.fixed[i]=='v'){
+				ctx.fillText(Math.round(OurBar.polevalue[i]*100)/100,Xpos,59);
+			}
+			if(i>1){ //These poles are special, lighter colored,tracked,have delete pole buttons
+				ctx.fillStyle=rgbToHex(50,50,50);
+				ctx.fillRect(Xpos,60,5,80);
+				PollTracker.push([Xpos,60,i]);
+				ctx.fillStyle=rgbToHex(0,0,0);
+				ctx.fillRect(Xpos+10,60+80+10,5,5);
+				ctx.font="8px sans-serif";
+				ctx.fillText('Delete Pole',Xpos+5,60+80+5);
+				KillRect.push([Xpos+10,60+80+10,i]);
+				ctx.fillRect(Xpos+10,65,5,5);
+				ctx.font="8px sans-serif";
+				ctx.fillText('Input Value',Xpos+10,80);
+				InputRect.push([Xpos+10,65,i]);
+			}
+			//Leftx is ColorBar.pole(0),Rightx = ColorBar.pole(1)
+		}
+	}
+	//Now draw the spectrum on the bottom
+	//each pixel is a step
+	for(var i=0;i<BarRange;i++){
+		var PsentAlong=i/BarRange;
+		var Value=OurBar.polevalue[0]+(OurBar.polevalue[1]-OurBar.polevalue[0])*PsentAlong;
+		if(BinMe){
+			Value=MakeBin(Value);
+		}
+		ctx.strokeStyle=OurBar.GetColor(Value);
+		ctx.beginPath();
+		ctx.moveTo(LeftX+i,170);
+		ctx.lineTo(LeftX+i,200);
+		ctx.stroke();
+		if(i%10==0){
+			ctx.save();
+			ctx.translate(ctx.canvas.width , 0);
+			ctx.rotate(Math.PI/2);
+			ctx.font10+"px sans-serif";
+			ctx.fillText(Math.round(Value*100)/100,150,-LeftX-i+ctx.canvas.width);
+			ctx.restore();
+			//Rotate canvas, write Value, Rotate back
+		}
+	}
+	ctx.save();
+	ctx.translate(ctx.canvas.width , 0);
+	ctx.rotate(Math.PI/2);
+	ctx.font10+"px sans-serif";
+	ctx.fillText(Math.round(Value*100)/100,150,-LeftX-i+ctx.canvas.width);
+	ctx.restore();
+}
+ColorBar=function(){
+	this.max=100;
+	this.min=0;
+	this.fixed=['p','p'];
+	//this.range=(Max-Min)||0;
+	this.pole=[this.min,this.max]; //this holds the set of all pole values. value listed here is %
+	this.polevalue=[0,100]; //numerical poll value, first is min, second is max, all others is specifc number
+	this.polecolor=[[0,0,255],[255,0,0]]; //this holds the color value (r,g,b) of each pole. Indexes should line up. pollcolor[0] corrosponds to pole[0]
+};
+ColorBar.prototype.GetColor=function(value){
+	//find the two poles this value lies between, or the pole it lies on. Return the color
+	var CurrentBottom=0;
+	var CurrentTop=1;
+	for(var i=0; i<this.pole.length; i++){
+		if(this.polevalue[i]==value){
+			CurrentBottom=i;
+			CurrentTop=i;
+			break
+		}
+		if((this.polevalue[i]<value)&&(this.pole[i]>this.pole[CurrentBottom])){
+			CurrentBottom=i;
+		}
+		if((this.polevalue[i]>value)&&(this.pole[i]<this.pole[CurrentTop])){
+			CurrentTop=i;
+		}
+	}
+	if(CurrentTop==CurrentBottom){
+		return rgbToHex(this.polecolor[CurrentBottom][0],this.polecolor[CurrentBottom][1],this.polecolor[CurrentBottom][2]);
+	}
+	else{ 
+		//know value is between this.pole[CurrentBottom] and this.pole[CurrentTop] 
+		//know the color of this.polecolor[CurrentBottom] and this.polecolor[CurrentTop]
+		var PercentAlong=(value-this.polevalue[CurrentBottom])/(this.polevalue[CurrentTop]-this.polevalue[CurrentBottom]);
+		var RedDif=this.polecolor[CurrentTop][0]-this.polecolor[CurrentBottom][0];
+		var GreenDif=this.polecolor[CurrentTop][1]-this.polecolor[CurrentBottom][1];
+		var BlueDiff=this.polecolor[CurrentTop][2]-this.polecolor[CurrentBottom][2];
+		var R = Math.floor(this.polecolor[CurrentBottom][0]+RedDif*PercentAlong);
+		var G = Math.floor(this.polecolor[CurrentBottom][1]+GreenDif*PercentAlong);
+		var B = Math.floor(this.polecolor[CurrentBottom][2]+BlueDiff*PercentAlong);
+		//console.log(PercentAlong,RedDif,R);
+		return rgbToHex(R,G,B);
+	}
+};
+ColorBar.prototype.AddPole=function(){
+	var Color=[100,100,100];
+	this.pole.push(50);
+	this.fixed.push('p');
+	this.polevalue.push((this.polevalue[1]+this.polevalue[0])/2);
+	this.polecolor.push(Color);
+};
+ColorBar.prototype.DeletePole=function(index){
+	if(index>1){
+		if(index<this.pole.length){
+			this.pole.splice(index,1);
+			this.polecolor.splice(index,1);
+			this.polevalue.splice(index,1);
+			this.fixed.splice(index,1);
+		}
+	}
+};
+ColorBar.prototype.UpdatePoles=function (MIN,MAX){
+	this.min=MIN;
+	this.max=MAX;
+	var pole=[0,100];
+	var value=[MIN,MAX];
+	var range=MAX-MIN;
+	for(var i=2;i<this.fixed.length;i++){
+		if(this.fixed[i]=='p'){
+			pole.push(this.pole[i]);
+			value.push(this.min+this.pole[i]*range/100);
+		}
+		if(this.fixed[i]=='v'){
+			pole.push((this.polevalue[i]-this.min)/range *100);
+			value.push(this.polevalue[i]);
+		}
+	}
+	this.pole=pole;
+	this.polevalue=value;
+};
+ColorBar.prototype.UpdatePolePercent=function (MIN,MAX){
+	this.min=MIN;
+	this.max=MAX;
+	this.pole=[];
+	var range=MAX-MIN;
+	for (var i=0;i<this.polevalue.length; i++){
+		this.pole.push((this.polevalue[i]-this.min)/range *100)
+	}
+};
+ColorBar.prototype.UpdatePoleValue=function (MIN,MAX){
+	this.min=MIN;
+	this.max=MAX;
+	this.polevalue=[];
+	var range=MAX-MIN;
+	for (var i=0;i<this.pole.length; i++){
+		this.polevalue.push(this.min+this.pole[i]*range/100);
+	}
+	/*
+this.polevalue[0]=MIN;
+this.polevalue[1]=MAX;*/
+};
+OurBar=new ColorBar(0,100);
+OurBar.AddPole();
+OurBar.polecolor[2]=[255,255,255];
+function OpenColorScale(){
+	ColorOpen=true;
+	ColorMenu.style.visibility='visible';
+	slide.width=600;
+	slide.height=200;
+	ColorContext=slide.getContext('2d');
+	ColorContext.fillStyle=rgbToHex(255,255,255);
+	ColorContext.fillRect(0,0,ColorContext.canvas.width,ColorContext.canvas.height);
+	DrawCurrentBar(ColorContext);
+	if(typeof(SMD)!=='undefined'){
+		slide.removeEventListener('mousedown',SMD);
+		slide.removeEventListener('mousemove',SMM);
+		slide.removeEventListener('mouseup',SMU);
+	}
+	slide.addEventListener('mousedown', SMD=function(evt) {
+		if(!NoMore){
+			var rect = slide.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			//Check if a kill box
+			for(var i=0; i<KillRect.length;i++){
+				var KR=KillRect[i];
+				if((x>KR[0]-2)&&(x<KR[0]+5+2)&&(y>KR[1]-2)&&(y<KR[1]+5+2)){
+					OurBar.DeletePole(KR[2]);
+					DrawCurrentBar(ColorContext);
+					return 0
+				}  
+			}
+			//check if a color box
+			for(var i=0; i<ColorChooserRec.length;i++){
+				var KR=ColorChooserRec[i];
+				if((x>=KR[0]-2)&&(x<=KR[0]+10+2)&&(y>=KR[1]-2)&&(y<=KR[1]+10+2)){
+					var Cin=[OurBar.polecolor[KR[2]][0],OurBar.polecolor[KR[2]][1],OurBar.polecolor[KR[2]][2]];
+					OpenColorPicker(Cin,evt.clientX,evt.clientY,KR[2]);
+					NoMore=true;
+					return 0
+				}  
+			}
+			//check if a movable pole
+			for(var i=0; i<PollTracker.length;i++){
+				var KR=PollTracker[i];
+				if((x>=KR[0]-3)&&(x<=KR[0]+5+3)&&(y>=KR[1]-3)&&(y<=KR[1]+80+3)){
+					ClickedPole=KR[2];
+					OurBar.fixed[KR[2]]='p';
+					DrawCurrentBar(ColorContext);
+					return 0
+				}  
+			}
+			for(var i=0; i<InputRect.length;i++){
+				var KR=InputRect[i];
+				if((x>=KR[0]-2)&&(x<=KR[0]+5+2)&&(y>=KR[1]-2)&&(y<=KR[1]+5+2)){
+					var Percent=OurBar.pole[KR[2]];
+					var Value=OurBar.polevalue[KR[2]];
+					var Cin=prompt("Enter a number for the value of this color pole. Or enter as a percent of total i.e. 50%",Value);
+					if(Cin.indexOf('%')!=-1){
+						OurBar.fixed[KR[2]]='p';
+						OurBar.pole[KR[2]]=parseFloat(Cin.split('%')[0]);
+					}
+					else{
+						OurBar.fixed[KR[2]]='v';
+						OurBar.polevalue[KR[2]]=parseFloat(Cin);
+						OurBar.pole[KR[2]]=(OurBar.polevalue[KR[2]]-OurBar.polevalue[0])/(OurBar.polevalue[1]-OurBar.polevalue[0])*100;
+					}
+					OurBar.UpdatePoles(OurBar.polevalue[0],OurBar.polevalue[1]);
+					DrawCurrentBar(ColorContext);
+					return 0
+				}  
+			}
+		}});
+	ClickedPole=-1;
+	slide.addEventListener('mousemove', SMM= function(evt) {
+		// console.log(ClickedPole);
+		if((ClickedPole>-1)){
+			var rect = slide.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			if((x>50)&&(x<slide.width-50)){
+				XPercent = (x-50)/(slide.width-100);
+				OurBar.pole[ClickedPole]=XPercent*100;
+				OurBar.polevalue[ClickedPole]=OurBar.min+OurBar.pole[ClickedPole]*(OurBar.max-OurBar.min)/100;
+				OurBar.UpdatePoles(OurBar.polevalue[0],OurBar.polevalue[1]);
+				DrawCurrentBar(ColorContext);
+			}
+		}
+	}
+	);
+	slide.addEventListener('mouseup', SMU=function(evt) {
+		ClickedPole=-1;
+	}
+	);
+}
+function SetSize(){
+	var Temp=prompt("set the cell size",GloCell);
+	if(!isNaN(parseInt(Temp))){
+		GloCell=parseInt(Temp);
+		DenisDrawHeatMap();
+	}
+}
+
+/*
+DenisStrainColumn=[];
+DenisTimepointColumn=[];
+DenisCollectionDataColumns =[];
+DenisRuleArray =[];
+*/
+function DenisDrawHeatMap(){
+MinCell=GloCell;
+	$( ".Heatmap" ).remove();
+	if(typeof(DenisRuleArray)!=='undefined'){
+		if(typeof(Zmoove)!=='undefined'){
+			Zoom.removeEventListener('mousedown',Zmouse);
+			Zoom.removeEventListener('mousemove',Zmoove);
+			Zoom.removeEventListener('mouseup',Zup);
+			Zoom.removeEventListener('mouseleave',Zle);
+		}
+		Zoom=document.getElementsByClassName('zoom-g')[0];
+		//Zoom=document.createElement('div');
+		Zoom.addEventListener('mousedown',Zmouse=function(evt){
+			if(SomethingIsHighlighted){
+				if(Clicked!=null){
+					Clicked.style.outline='none';
+					SomethingIsHighlighted=false;
+					AddToHeat.disabled=true;
+				}
+				Clicked=null;
+			}
+		}
+		);
+		Zoom.addEventListener('mousemove',Zmoove=function(evt){
+			OurButton=document.getElementById('brush-mode-button');
+			if(OurButton.className.indexOf('active')!=-1){
+				if(Clicked!=null){
+					if(Clicking){
+						var svg = document.querySelector('svg');
+						var pt = svg.createSVGPoint();
+						function cursorPoint(evt){
+							pt.x = evt.clientX; pt.y = evt.clientY;
+							G=document.getElementsByClassName('zoom-g')[0].childNodes[0];
+							return pt.matrixTransform(G.childNodes[0].getScreenCTM().inverse());
+						}
+						var loc = cursorPoint(evt);
+						var Transx=Start.x-loc.x;
+						var Transy=Start.y-loc.y;
+						Start.x=loc.x;
+						Start.y=loc.y;
+						var NewX=Clicked.transform.animVal[0]['matrix'].e-Transx;
+						var NewY=Clicked.transform.animVal[0]['matrix'].f-Transy;
+						Clicked.setAttribute('transform','translate('+NewX+','+NewY+')');
+					}
+				}
+			}
+		});
+		Zoom.addEventListener('mouseup',Zup=function(evt){
+			Clicking=false;
+			if(Clicked!=null){
+				SomethingIsHighlighted=true;
+				AddToHeat.disabled=false;
+			}
+		});
+		Zoom.addEventListener('mouseleave',Zle=function(evt){
+			Clicking=false;
+			if(Clicked!=null){
+				SomethingIsHighlighted=true;
+				AddToHeat.disabled=false;
+			}
+		});
+	
+			var context=Key.getContext('2d');
+			DrawKeyDenis(context);
+		
+		var numeric_array = new Array();
+		var IDarray = new Array();
+		for (var items in BUILDER.map.reactions){
+			numeric_array.push( BUILDER.map.reactions[items] );
+			IDarray.push(items);
+		}
+		for(var Reac=0;Reac<numeric_array.length;Reac++){ //For each reaction
+			var Reaction = numeric_array[Reac];
+			var RawRules=Reaction.gene_reaction_rule;
+			RawRules=replaceAll('and',';',RawRules);
+			RawRules=replaceAll('or',';',RawRules);
+			RawRules=replaceAll(' ',';',RawRules);
+			RawRules=replaceAll(',',';',RawRules);
+			RawRules=replaceAll('(',';',RawRules);
+			RawRules=replaceAll(')',';',RawRules);
+			RawRules=RawRules.split(';');
+			var RefinedRules=[];
+			for(var temp=0;temp<RawRules.length;temp++){
+				if(RawRules[temp].length>0){
+					if(RefinedRules.indexOf(RawRules[temp])==-1){
+						RefinedRules.push(RawRules[temp]);} //get list of reaction rules
+				}
+			}
+			//console.log(IDarray[Reac]);
+			if(typeof(Extra[IDarray[Reac]])!=='undefined'){
+				for(var i=0;i<Extra[IDarray[Reac]].length;i++){
+					RefinedRules.push(Extra[IDarray[Reac]][i]);
+				}}
+				
+				
+				//OK so here we have a list of the pt3Id of all the rules
+
+
+			//console.log(RefinedRules);
+		
+			var DenisColToUse=[];
+			for(var temp=0;temp<RefinedRules.length;temp++){
+			
+			if(DenisRuleArray.indexOf(RefinedRules[temp])!=-1){
+			var Idex =DenisRuleArray.indexOf(RefinedRules[temp]);
+			DenisColToUse.push(DenisCollectionDataColumns[Idex]);
+			}
+			}
+			
+		
+		if(DenisColToUse.length > 0){
+		
+				//Problem with this, Need to render the text before we can measure it's width. Causing big problems.
+				ParentReaction=document.getElementById('r'+IDarray[Reac]);
+				Parent=document.getElementById('heatmapContainer_'+'r'+IDarray[Reac]);
+				if(Parent==null){
+					var XPOS=Reaction.label_x;
+					var YPOS=Reaction.label_y;
+					Parent=document.createElementNS('http://www.w3.org/2000/svg','g');
+					Parent.setAttribute('id','heatmapContainer_'+'r'+IDarray[Reac]);
+					Parent.setAttribute('transform','translate('+XPOS+','+YPOS+')');
+					ParentReaction.appendChild(Parent);
+					Parent.addEventListener('mousedown', function(evt){
+						OurButton=document.getElementById('brush-mode-button');
+						if(OurButton.className.indexOf('active')!=-1){
+							var svg = document.querySelector('svg');
+							var pt = svg.createSVGPoint();
+							function cursorPoint(evt){
+								pt.x = evt.clientX; pt.y = evt.clientY;
+								G=document.getElementsByClassName('zoom-g')[0].childNodes[0];
+								return pt.matrixTransform(G.childNodes[0].getScreenCTM().inverse());
+							}
+							var loc = cursorPoint(evt);
+							Start.x=loc.x;
+							Start.y=loc.y;
+							OrigPos.x=this.transform.animVal[0]['matrix'].e;
+							OrigPos.y=this.transform.animVal[0]['matrix'].f;
+							Clicking=true;
+							if(Clicked!=null){
+								Clicked.style.outline='none';
+								SomethingIsHighlighted=false;
+								AddToHeat.disabled=true;
+							}
+							Clicked=this;
+							this.style.outline='thick solid black';
+						}
+					});
+					
+					Parent.addEventListener('mouseup', function(evt){
+						Clicking=false;
+						if(Clicked!=null){
+							SomethingIsHighlighted=true;
+							AddToHeat.disabled=false;
+						}
+					});
+				
+				}
+				//Now put row labels, column labels, and heat map blocks and labels directly into svg.
+				
+					/*DenisStrainColumn=[];
+DenisTimepointColumn=[];
+DenisCollectionDataColumns =[];
+*/
+		//OK remember, 
+		//DenisColToUse is a array of arrays (gene rows)
+		//gene row 0 is pt3id, 1 is display name
+		//2 through len(DenisStrainColumn)+2 is data
+		//Going to be dumb, going to assume strain and timepoint in correct order
+		//going to assume only 2 timepoints, going to assume things clustered correctly
+		//column headers on top are given by DenisStrainColumn
+				TempRowArray=[];
+				var W=0;
+				var H=0;
+			
+					for(var temp=0;temp<DenisColToUse.length;temp++){
+						var ROWNAMES=document.createElementNS('http://www.w3.org/2000/svg', 'text');
+						ROWNAMES.setAttribute('class','Heatmap');
+						ROWNAMES.setAttribute('style','font-size:'+MinCell+'; font-weight:bold;');
+						ROWNAMES.textContent=DenisColToUse[temp][1];
+						Parent.appendChild(ROWNAMES);
+						var bbox=ROWNAMES.getComputedTextLength();
+						TempRowArray.push(ROWNAMES);
+						W=Math.max(W,bbox);
+						
+					}
+				
+				TempColArray=[];
+		
+					for(var temp=0;temp<DenisStrainColumn.length;temp++){
+						var ROWNAMES=document.createElementNS('http://www.w3.org/2000/svg', 'text');
+						ROWNAMES.setAttribute('class','Heatmap');
+						ROWNAMES.setAttribute('style','font-size:'+MinCell+'; font-weight:bold; position:fixed;');
+						ROWNAMES.textContent=DenisStrainColumn[temp];
+						Parent.appendChild(ROWNAMES);
+						Mbbox=ROWNAMES.getComputedTextLength();
+						H=Math.max(H,Mbbox);
+						TempColArray.push(ROWNAMES);
+					}
+				
+				var RowStart=H;//YPOS+H;
+				var ColStart=W;//XPOS+W;
+				//console.log(W,H);
+				for(var i=0;i<TempRowArray.length;i++){
+					var bbox=TempRowArray[i].getComputedTextLength();
+					//console.log(bbox);
+					var ww=bbox
+					//var Big=0.52*TempRowArray[i].textContent.length*MinCell;
+					//ww=Math.max(ww,Big);
+					TempRowArray[i].setAttribute('x',ColStart-ww);
+					TempRowArray[i].setAttribute('y',RowStart+MinCell*(i+1));
+					//Parent.appendChild(TempRowArray[i]);
+				}
+				for(var i=0;i<TempColArray.length;i++){
+					var bbox=TempColArray[i].getBBox();
+					TempColArray[i].setAttribute('transform','rotate(-90 0 0)');
+					TempColArray[i].setAttribute('y',ColStart+MinCell*(i)+6*MinCell/8);
+					TempColArray[i].setAttribute('x',-RowStart);
+				}
+				for(var i=0;i<DenisColToUse.length;i++){//HEadersArray are the rows
+					var Ypos=RowStart+MinCell*i;
+					var StartBigCat = DenisTimepointColumn[0];
+					for(var j=2; j<DenisColToUse[i].length+2;j++){
+						var Xpos=ColStart+MinCell*(j-2);
+						Cell=document.createElementNS("http://www.w3.org/2000/svg", "rect");
+						Cell.setAttributeNS(null,'x',Xpos);
+						Cell.setAttributeNS(null,'y',Ypos);
+						Cell.setAttributeNS(null,'height',MinCell);
+						Cell.setAttributeNS(null,'width',MinCell);
+				
+						var Value=parseFloat(DenisColToUse[i][j]); //Value grabbed by HeadersArray value (which is the name of the row)
+						if(!isNaN(Value)  ){
+							Cell.setAttributeNS(null,'fill',OurBar.GetColor(Value));
+						}
+						else{
+							Cell.setAttributeNS(null,'fill','white');
+						}
+						Cell.setAttribute('class','Heatmap');
+						Parent.appendChild(Cell);
+						if(j-2 < DenisTimepointColumn.length){
+						if(StartBigCat!=DenisTimepointColumn[j-2]){
+							Cell=document.createElementNS("http://www.w3.org/2000/svg", "rect");
+						Cell.setAttributeNS(null,'x',Xpos-2);
+						Cell.setAttributeNS(null,'y',Ypos);
+						Cell.setAttributeNS(null,'height',MinCell);
+						Cell.setAttributeNS(null,'width',4);
+							Cell.setAttribute('class','Heatmap');
+							Cell.setAttributeNS(null,'fill','black');
+						StartBigCat=DenisTimepointColumn[j];
+								Parent.appendChild(Cell);
+						
+						}
+						}
+				
+					}
+				}
+			//Now do DAWN DUSK labels/// Lines
+		DDlabels=[];
+		var TLab=[]
+					for(var temp=0;temp<DenisTimepointColumn.length;temp++){
+					if(TLab.indexOf(DenisTimepointColumn[temp])==-1){
+					TLab.push(DenisTimepointColumn[temp]);
+						var ROWNAMES=document.createElementNS('http://www.w3.org/2000/svg', 'text');
+						ROWNAMES.setAttribute('class','Heatmap');
+						ROWNAMES.setAttribute('style','font-size:'+Math.max(MinCell-5,8)+'; font-weight:bold; position:fixed;');
+						ROWNAMES.textContent=DenisTimepointColumn[temp];
+						Parent.appendChild(ROWNAMES);
+						Mbbox=ROWNAMES.getComputedTextLength();
+						H=Math.max(H,Mbbox);
+						DDlabels.push(ROWNAMES);
+					
+					}
+				
+					}
+					var LabIndex = 0;
+					var StartX = ColStart;
+					var EndX = 0;
+					for(var i=0;i<DenisTimepointColumn.length;i++){
+					if(DenisTimepointColumn[i] != TLab[LabIndex]){
+				EndX = ColStart+MinCell*(i);
+				
+				var Midpoint=(EndX - StartX/2);
+				console.log(Midpoint);
+				DDlabels[LabIndex].setAttribute('y',Ypos+2*MinCell);
+				DDlabels[LabIndex].setAttribute('x',StartX);
+				StartX=EndX;
+				
+
+					LabIndex++;
+					}
+					
+					
+				}
+								EndX = ColStart+MinCell*(i);
+				
+				var Midpoint=(EndX - StartX/2);
+				console.log(Midpoint);
+				DDlabels[LabIndex].setAttribute('y',Ypos+2*MinCell);
+				DDlabels[LabIndex].setAttribute('x',StartX);
+				StartX=EndX;
+				
+
+				
+			}
+		}
+	}
+
+}
+
+function DrawHeatMap(){
+	MinCell=GloCell;
+	$( ".Heatmap" ).remove();
+	if(typeof(UseRowHeaders)!=='undefined'){
+		if(typeof(Zmoove)!=='undefined'){
+			Zoom.removeEventListener('mousedown',Zmouse);
+			Zoom.removeEventListener('mousemove',Zmoove);
+			Zoom.removeEventListener('mouseup',Zup);
+			Zoom.removeEventListener('mouseleave',Zle);
+		}
+		Zoom=document.getElementsByClassName('zoom-g')[0];
+		//Zoom=document.createElement('div');
+		Zoom.addEventListener('mousedown',Zmouse=function(evt){
+			if(SomethingIsHighlighted){
+				if(Clicked!=null){
+					Clicked.style.outline='none';
+					SomethingIsHighlighted=false;
+					AddToHeat.disabled=true;
+				}
+				Clicked=null;
+			}
+		}
+		);
+		Zoom.addEventListener('mousemove',Zmoove=function(evt){
+			OurButton=document.getElementById('brush-mode-button');
+			if(OurButton.className.indexOf('active')!=-1){
+				if(Clicked!=null){
+					if(Clicking){
+						var svg = document.querySelector('svg');
+						var pt = svg.createSVGPoint();
+						function cursorPoint(evt){
+							pt.x = evt.clientX; pt.y = evt.clientY;
+							G=document.getElementsByClassName('zoom-g')[0].childNodes[0];
+							return pt.matrixTransform(G.childNodes[0].getScreenCTM().inverse());
+						}
+						var loc = cursorPoint(evt);
+						var Transx=Start.x-loc.x;
+						var Transy=Start.y-loc.y;
+						Start.x=loc.x;
+						Start.y=loc.y;
+						var NewX=Clicked.transform.animVal[0]['matrix'].e-Transx;
+						var NewY=Clicked.transform.animVal[0]['matrix'].f-Transy;
+						Clicked.setAttribute('transform','translate('+NewX+','+NewY+')');
+					}
+				}
+			}
+		});
+		Zoom.addEventListener('mouseup',Zup=function(evt){
+			Clicking=false;
+			if(Clicked!=null){
+				SomethingIsHighlighted=true;
+				AddToHeat.disabled=false;
+			}
+		});
+		Zoom.addEventListener('mouseleave',Zle=function(evt){
+			Clicking=false;
+			if(Clicked!=null){
+				SomethingIsHighlighted=true;
+				AddToHeat.disabled=false;
+			}
+		});
+		if(typeof(UseTable)!=='undefined'){
+			var context=Key.getContext('2d');
+			DrawKey(context);
+		}
+		var numeric_array = new Array();
+		var IDarray = new Array();
+		for (var items in BUILDER.map.reactions){
+			numeric_array.push( BUILDER.map.reactions[items] );
+			IDarray.push(items);
+		}
+		for(var Reac=0;Reac<numeric_array.length;Reac++){ //For each reaction
+			var Reaction = numeric_array[Reac];
+			var RawRules=Reaction.gene_reaction_rule;
+			RawRules=replaceAll('and',';',RawRules);
+			RawRules=replaceAll('or',';',RawRules);
+			RawRules=replaceAll(' ',';',RawRules);
+			RawRules=replaceAll(',',';',RawRules);
+			RawRules=replaceAll('(',';',RawRules);
+			RawRules=replaceAll(')',';',RawRules);
+			RawRules=RawRules.split(';');
+			var RefinedRules=[];
+			for(var temp=0;temp<RawRules.length;temp++){
+				if(RawRules[temp].length>0){
+					if(RefinedRules.indexOf(RawRules[temp])==-1){
+						RefinedRules.push(RawRules[temp]);} //get list of reaction rules
+				}
+			}
+			//console.log(IDarray[Reac]);
+			if(typeof(Extra[IDarray[Reac]])!=='undefined'){
+				for(var i=0;i<Extra[IDarray[Reac]].length;i++){
+					RefinedRules.push(Extra[IDarray[Reac]][i]);
+				}}
+			//console.log(RefinedRules);
+			var HeadersArray=[];
+			for(var temp=0;temp<RefinedRules.length;temp++){
+				if(UseRowHeaders.indexOf(RefinedRules[temp])!=-1){
+					HeadersArray.push(UseRowHeaders.indexOf(RefinedRules[temp]));
+				}
+			}
+			//Can do clustering by rows by reordering the HeadersArray!!
+			
+		
+			
+	
+			if(HeadersArray.length>0){
+			
+			if(ClusterRow.checked == true){
+			HeatmapToCluster = [];
+			
+			Ordering = new Array();
+			for(row in HeadersArray){ //need to cluster the rows
+			NameDataCombo = new Array();
+			NameDataCombo.push(row);
+			NameDataCombo.push(UseTable[[HeadersArray[row]]]);
+			//can get the data of the ROW by ROW = UseTable[[HeadersArray[row]]]
+			HeatmapToCluster.push(NameDataCombo);
+			Ordering.push("");
+			}
+			
+			//Make distance matrix for the heatmap rows
+		ClusNum=0;
+while(HeatmapToCluster.length>2){
+//DISTANCE=new Array();
+		MinScore=100000;
+			MinXY=[0,0];
+			for(FFF in HeatmapToCluster){
+			//DISTANCE[FFF]=new Array();
+	
+			for(GGG in HeatmapToCluster){
+			ROWONE = HeatmapToCluster[FFF][1];
+			ROWTWO = HeatmapToCluster[GGG][1];
+			TD=0;
+			for(V=0;V<ROWONE.length;V++){
+			if(!isNaN(parseFloat(ROWONE[V])) && !isNaN(parseFloat(ROWTWO[V]))){
+			TD=TD+Math.pow(parseFloat(ROWONE[V])-parseFloat(ROWTWO[V]),2);}
+			}
+			TD=Math.sqrt(TD);
+			//DISTANCE[FFF][GGG]=TD;
+			if(FFF != GGG){
+			if(MinScore > TD){
+			MinScore=Math.min(MinScore,TD);
+			MinXY=[HeatmapToCluster[FFF][0],HeatmapToCluster[GGG][0]];
+			INDXY=[FFF,GGG];
+			MROWONE=ROWONE;
+			MROWTWO=ROWTWO;
+			}
+
+			}
+			}
+			
+			}
+			//Ordering[MinXY[0]]=Ordering[MinXY[0]]+"_"+ClusNum;
+		//	Ordering[MinXY[1]]=Ordering[MinXY[1]]+"_"+ClusNum;
+			//ClusNum++;
+			if(INDXY[0]>INDXY[1]){
+			BigInd = INDXY[0];
+			SmalInd = INDXY[1];
+			}
+			else{
+			BigInd = INDXY[1];
+			SmalInd = INDXY[0];
+			}
+			
+			ROWONE = MROWONE;
+			ROWTWO = MROWTWO;
+			TD=0;
+			NewDif=new Array();
+			for(V=0;V<ROWONE.length;V++){
+			
+			NewDif.push((parseFloat(ROWONE[V])+parseFloat(ROWTWO[V]))/2);
+			
+			}
+			HeatmapToCluster.splice(BigInd,1);
+			HeatmapToCluster[SmalInd]=[MinXY[1]+"_"+MinXY[0],NewDif];
+			
+			}
+			
+			if(HeatmapToCluster.length == 2){
+			ORDER=new Array();
+			for(var GGG =0; GGG < 2; GGG++){
+			ORDERS=HeatmapToCluster[GGG][0].split("_");
+			for(var JJJ=0;JJJ<ORDERS.length;JJJ++){
+			ORDER.push(parseInt(ORDERS[JJJ]));
+						}
+						}
+			TARRAY=new Array();
+			for (var row=0; row < HeadersArray.length; row++){
+			TARRAY.push(HeadersArray[ORDER[row]]);
+			}
+			HeadersArray=new Array();
+			for (var row=0; row < TARRAY.length; row++){
+			HeadersArray.push(TARRAY[row]);
+			}
+			}
+			//console.log(HeatmapToCluster);
+			
+			
+			//using EuclideanDistance
+			
+			
+			}
+			
+				//Problem with this, Need to render the text before we can measure it's width. Causing big problems.
+				ParentReaction=document.getElementById('r'+IDarray[Reac]);
+				Parent=document.getElementById('heatmapContainer_'+'r'+IDarray[Reac]);
+				if(Parent==null){
+					var XPOS=Reaction.label_x;
+					var YPOS=Reaction.label_y;
+					Parent=document.createElementNS('http://www.w3.org/2000/svg','g');
+					Parent.setAttribute('id','heatmapContainer_'+'r'+IDarray[Reac]);
+					Parent.setAttribute('transform','translate('+XPOS+','+YPOS+')');
+					ParentReaction.appendChild(Parent);
+					Parent.addEventListener('mousedown', function(evt){
+						OurButton=document.getElementById('brush-mode-button');
+						if(OurButton.className.indexOf('active')!=-1){
+							var svg = document.querySelector('svg');
+							var pt = svg.createSVGPoint();
+							function cursorPoint(evt){
+								pt.x = evt.clientX; pt.y = evt.clientY;
+								G=document.getElementsByClassName('zoom-g')[0].childNodes[0];
+								return pt.matrixTransform(G.childNodes[0].getScreenCTM().inverse());
+							}
+							var loc = cursorPoint(evt);
+							Start.x=loc.x;
+							Start.y=loc.y;
+							OrigPos.x=this.transform.animVal[0]['matrix'].e;
+							OrigPos.y=this.transform.animVal[0]['matrix'].f;
+							Clicking=true;
+							if(Clicked!=null){
+								Clicked.style.outline='none';
+								SomethingIsHighlighted=false;
+								AddToHeat.disabled=true;
+							}
+							Clicked=this;
+							this.style.outline='thick solid black';
+						}
+					});
+					/*
+Parent.addEventListener('mousemove', function(evt){
+OurButton=document.getElementById('brush-mode-button');
+if(OurButton.className.indexOf('active')!=-1){
+if(Clicked!=null){
+if(Clicked==this){
+var Transx=Start.x-evt.clientX;
+var Transy=Start.y-evt.clientY;
+Start.x=evt.clientX;
+Start.y=evt.clientY;
+var NewX=this.transform.animVal[0]['matrix'].e-Transx;
+var NewY=this.transform.animVal[0]['matrix'].f-Transy;
+this.setAttribute('transform','translate('+NewX+','+NewY+')');
+}
+}
+}
+});*/
+					Parent.addEventListener('mouseup', function(evt){
+						Clicking=false;
+						if(Clicked!=null){
+							SomethingIsHighlighted=true;
+							AddToHeat.disabled=false;
+						}
+					});
+					/*Parent.addEventListener('mouseleave', function(evt){
+OurButton=document.getElementById('brush-mode-button');
+if(OurButton.className.indexOf('active')!=-1){
+if(Clicked!=null){
+if(Clicked==this){
+var Transx=Start.x-evt.clientX;
+var Transy=Start.y-evt.clientY;
+Start.x=evt.clientX;
+Start.y=evt.clientY;
+var NewX=this.transform.animVal[0]['matrix'].e-Transx;
+var NewY=this.transform.animVal[0]['matrix'].f-Transy;
+this.setAttribute('transform','translate('+NewX+','+NewY+')');
+}
+}
+}
+});*/
+				}
+				//Now put row labels, column labels, and heat map blocks and labels directly into svg.
+				TempRowArray=[];
+				var W=0;
+				var H=0;
+				if(ShowRows.checked!=true){
+					for(var temp=0;temp<HeadersArray.length;temp++){
+						var ROWNAMES=document.createElementNS('http://www.w3.org/2000/svg', 'text');
+						ROWNAMES.setAttribute('class','Heatmap');
+						ROWNAMES.setAttribute('style','font-size:'+MinCell+'; font-weight:bold;');
+						ROWNAMES.textContent=UseRowHeaders[HeadersArray[temp]];
+						Parent.appendChild(ROWNAMES);
+						var bbox=ROWNAMES.getComputedTextLength();
+						TempRowArray.push(ROWNAMES);
+						W=Math.max(W,bbox);
+						//var Big=0.52*UseRowHeaders[HeadersArray[temp]].length*MinCell;
+						//console.log(Big)
+						//W=Math.max(W,Big);
+					}
+				}
+				TempColArray=[];
+				if(ShowColumns.checked!=true){
+					for(var temp=0;temp<UseColumnHeaders.length;temp++){
+						var ROWNAMES=document.createElementNS('http://www.w3.org/2000/svg', 'text');
+						ROWNAMES.setAttribute('class','Heatmap');
+						ROWNAMES.setAttribute('style','font-size:'+MinCell+'; font-weight:bold; position:fixed;');
+						ROWNAMES.textContent=UseColumnHeaders[temp];
+						Parent.appendChild(ROWNAMES);
+						Mbbox=ROWNAMES.getComputedTextLength();
+						H=Math.max(H,Mbbox);
+						TempColArray.push(ROWNAMES);
+					}
+				}
+				var RowStart=H;//YPOS+H;
+				var ColStart=W;//XPOS+W;
+				//console.log(W,H);
+				for(var i=0;i<TempRowArray.length;i++){
+					var bbox=TempRowArray[i].getComputedTextLength();
+					//console.log(bbox);
+					var ww=bbox
+					//var Big=0.52*TempRowArray[i].textContent.length*MinCell;
+					//ww=Math.max(ww,Big);
+					TempRowArray[i].setAttribute('x',ColStart-ww);
+					TempRowArray[i].setAttribute('y',RowStart+MinCell*(i+1));
+					//Parent.appendChild(TempRowArray[i]);
+				}
+				for(var i=0;i<TempColArray.length;i++){
+					var bbox=TempColArray[i].getBBox();
+					TempColArray[i].setAttribute('transform','rotate(-90 0 0)');
+					TempColArray[i].setAttribute('y',ColStart+MinCell*(i)+6*MinCell/8);
+					TempColArray[i].setAttribute('x',-RowStart);
+				}
+				for(var i=0;i<HeadersArray.length;i++){//HEadersArray are the rows
+					var Ypos=RowStart+MinCell*i;
+					for(var j=0; j<UseColumnHeaders.length;j++){
+						var Xpos=ColStart+MinCell*(j);
+						Cell=document.createElementNS("http://www.w3.org/2000/svg", "rect");
+						Cell.setAttributeNS(null,'x',Xpos);
+						Cell.setAttributeNS(null,'y',Ypos);
+						Cell.setAttributeNS(null,'height',MinCell);
+						Cell.setAttributeNS(null,'width',MinCell);
+						var Value=parseFloat(UseTable[[HeadersArray[i]]][j]); //Value grabbed by HeadersArray value (which is the name of the row)
+						if(!isNaN(Value)  ){
+							Cell.setAttributeNS(null,'fill',OurBar.GetColor(Value));
+						}
+						else{
+							Cell.setAttributeNS(null,'fill','white');
+						}
+						Cell.setAttribute('class','Heatmap');
+						Parent.appendChild(Cell);
+						/*var ROWNAMES=document.createElementNS('http://www.w3.org/2000/svg', 'text');
+ROWNAMES.setAttribute('class','Heatmap');
+ROWNAMES.setAttribute('style','font-size:12; fill:white; stroke:black; stroke-width:.5px;');
+ROWNAMES.textContent=Value;
+ROWNAMES.setAttribute('x',Xpos);
+ROWNAMES.setAttribute('y',Ypos+MinCell-4);
+Parent.appendChild(ROWNAMES);
+*/
+					}
+				}
+			}
+		}
+	}
+}
+
+function MakeLookRobotSelected(){
+	var NODEHTML=document.getElementsByClassName('node selected');
+	var NODES=[];
+	var REACTIONID=[];
+	var NODEID=[];
+	for (var n=0; n<NODEHTML.length; n++){
+		var ID = NODEHTML[n].id.substring(1);
+		NODEID.push(ID);
+		var NODE = BUILDER.map.nodes[ID];
+		NODES.push(NODE);
+		for(k=0;k<NODE.connected_segments.length;k++){
+			if (REACTIONID.indexOf(NODE.connected_segments[k].reaction_id)==-1){
+				REACTIONID.push(NODE.connected_segments[k].reaction_id);
+			}}}
+	var REACTIONS=[];
+	for(k=0;k<REACTIONID.length;k++){
+		REACTIONS.push(BUILDER.map.reactions[REACTIONID[k]]);
+	}
+	//console.log(NODES,REACTIONID,REACTIONS)
+	for(var i=0; i<REACTIONS.length;i++){
+		var S=REACTIONS[i].segments;
+		var Skeys=Object.keys(S);
+		for(var j=0;j<Skeys.length;j++){
+			CurrentSeg=S[Skeys[j]];
+			var FromID=NODEID.indexOf(CurrentSeg.from_node_id);
+			var ToID=NODEID.indexOf(CurrentSeg.to_node_id);
+			var FnodePos=[BUILDER.map.nodes[CurrentSeg.from_node_id].x,BUILDER.map.nodes[CurrentSeg.from_node_id].y];
+			var ToNodePos=[BUILDER.map.nodes[CurrentSeg.to_node_id].x,BUILDER.map.nodes[CurrentSeg.to_node_id].y];
+			var Xdist=FnodePos[0]-ToNodePos[0];
+			var Ydist=FnodePos[1]-ToNodePos[1];
+			var DIST=Math.sqrt(Xdist*Xdist +Ydist*Ydist);
+			//b1 is from, b2 is to?
+			if(FromID!=-1){ //make bevil dist 20 from fromnode point at tonode
+				if(CurrentSeg.b1!=null){
+					CurrentSeg.b1.x=FnodePos[0]-(40*Xdist)/DIST;
+					CurrentSeg.b1.y=FnodePos[1]-(40*Ydist)/DIST;
+				}
+			}
+			if(ToID!=-1){ //make bevil dist 20 from tonode point at fromnode
+				if(CurrentSeg.b2!=null){
+					CurrentSeg.b2.x=ToNodePos[0]+(40*Xdist)/DIST;
+					CurrentSeg.b2.y=ToNodePos[1]+(40*Ydist)/DIST;
+				}
+			}
+		}
+	}
+	//Go through reactions, go through segments, go through bevils, if the bevil is associated with a node in NODES then make it pretty. else leave it alone.
+	//get highlighted nodes
+	//figure out which reaction each node belongs to
+	//First pass, make bevils point straight at targets
+	BUILDER.map.draw_all_reactions();
+}
+
+
+function OpenSelSegColorPicker(NODEIDLIST){
+
+	ColorPickerTwo.style.visibility='visible';
+	CColor='black';
+	Pcontext=Pickertwo.getContext('2d');
+	Pickertwo.width=350;
+	Pickertwo.height=200;
+	Pcontext.fillStyle=rgbToHex(25,25,25);
+	Pcontext.fillRect(0,0,Pcontext.canvas.width,Pcontext.canvas.height);
+	//Thanks to http://seesparkbox.com/foundry/how_i_built_a_canvas_color_picker
+	var gradient = Pcontext.createLinearGradient(5,5,Pickertwo.width-80,5);
+	gradient.addColorStop(0,    "rgb(255,   0,   0)");
+	gradient.addColorStop(0.15, "rgb(255,   0, 255)");
+	gradient.addColorStop(0.33, "rgb(0,     0, 255)");
+	gradient.addColorStop(0.49, "rgb(0,   255, 255)");
+	gradient.addColorStop(0.67, "rgb(0,   255,   0)");
+	gradient.addColorStop(0.84, "rgb(255, 255,   0)");
+	gradient.addColorStop(1,    "rgb(255,   0,   0)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient = Pcontext.createLinearGradient(0, 5, 0, Pcontext.canvas.height-10);
+	gradient.addColorStop(0,   "rgba(255, 255, 255, 1)");
+	gradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
+	gradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
+	gradient.addColorStop(1,   "rgba(0,     0,   0, 1)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	Pcontext.fillStyle=rgbToHex(210,210,210);
+	Pcontext.fillRect(Pcontext.canvas.width-50,Pcontext.canvas.height-30,40,20);
+	Pcontext.fillStyle=rgbToHex(0,0,0);
+	Pcontext.font="8px sans-serif";
+	Pcontext.fillText('Confirm',Pcontext.canvas.width-50+5,Pcontext.canvas.height-30+10);
+	Pcontext.fillStyle=CColor;
+	Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient.addColorStop(0,    "rgb(0,   0,   0)");
+	gradient.addColorStop(.5,   CColor);
+	gradient.addColorStop(1,    "rgb(255,   255,   255)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+	PickDown=false;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	Pickertwo.addEventListener('mousedown', PMDT=function(evt) {
+		PickDown=true;
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+			var c = Pcontext.getImageData(x, y, 1, 1).data;
+			CColor=rgbToHex(c[0],c[1],c[2]);
+			Pcontext.fillStyle=CColor;
+			Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+		}
+		if((x>Pcontext.canvas.width-50)&&(x<Pcontext.canvas.width-50+40)&&(y>Pcontext.canvas.height-30)&&(y<Pcontext.canvas.height-30+20)){
+			CloseSegSelectPicker(NODEIDLIST,CColor);
+		}
+	});
+	Pickertwo.addEventListener('mousemove', PMMT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+				var c = Pcontext.getImageData(x, y, 1, 1).data;
+				CColor=rgbToHex(c[0],c[1],c[2]);
+				Pcontext.fillStyle=CColor;
+				Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+			}
+		}
+	});
+	Pickertwo.addEventListener('mouseleave', PMLT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			PickDown=false;
+			if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+			}
+			else if (x>Pcontext.canvas.width-60){
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}
+			else{
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}}});
+	Pickertwo.addEventListener('mouseup', PMUT=function(evt) {
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		PickDown=false;
+		if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+		}
+		else if (x>Pcontext.canvas.width-60){
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}
+		else{
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}});
+}
+
+function OpenReactionColorer(){
+
+	ColorPickerTwo.style.visibility='visible';
+	CColor='black';
+	Pcontext=Pickertwo.getContext('2d');
+	Pickertwo.width=350;
+	Pickertwo.height=200;
+	Pcontext.fillStyle=rgbToHex(25,25,25);
+	Pcontext.fillRect(0,0,Pcontext.canvas.width,Pcontext.canvas.height);
+	//Thanks to http://seesparkbox.com/foundry/how_i_built_a_canvas_color_picker
+	var gradient = Pcontext.createLinearGradient(5,5,Pickertwo.width-80,5);
+	gradient.addColorStop(0,    "rgb(255,   0,   0)");
+	gradient.addColorStop(0.15, "rgb(255,   0, 255)");
+	gradient.addColorStop(0.33, "rgb(0,     0, 255)");
+	gradient.addColorStop(0.49, "rgb(0,   255, 255)");
+	gradient.addColorStop(0.67, "rgb(0,   255,   0)");
+	gradient.addColorStop(0.84, "rgb(255, 255,   0)");
+	gradient.addColorStop(1,    "rgb(255,   0,   0)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient = Pcontext.createLinearGradient(0, 5, 0, Pcontext.canvas.height-10);
+	gradient.addColorStop(0,   "rgba(255, 255, 255, 1)");
+	gradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
+	gradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
+	gradient.addColorStop(1,   "rgba(0,     0,   0, 1)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	Pcontext.fillStyle=rgbToHex(210,210,210);
+	Pcontext.fillRect(Pcontext.canvas.width-50,Pcontext.canvas.height-30,40,20);
+	Pcontext.fillStyle=rgbToHex(0,0,0);
+	Pcontext.font="8px sans-serif";
+	Pcontext.fillText('Confirm',Pcontext.canvas.width-50+5,Pcontext.canvas.height-30+10);
+	Pcontext.fillStyle=CColor;
+	Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient.addColorStop(0,    "rgb(0,   0,   0)");
+	gradient.addColorStop(.5,   CColor);
+	gradient.addColorStop(1,    "rgb(255,   255,   255)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+	PickDown=false;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	Pickertwo.addEventListener('mousedown', PMDT=function(evt) {
+		PickDown=true;
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+			var c = Pcontext.getImageData(x, y, 1, 1).data;
+			CColor=rgbToHex(c[0],c[1],c[2]);
+			Pcontext.fillStyle=CColor;
+			Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+		}
+		if((x>Pcontext.canvas.width-50)&&(x<Pcontext.canvas.width-50+40)&&(y>Pcontext.canvas.height-30)&&(y<Pcontext.canvas.height-30+20)){
+			CloseFontColorPicker(CColor);
+		}
+	});
+	Pickertwo.addEventListener('mousemove', PMMT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+				var c = Pcontext.getImageData(x, y, 1, 1).data;
+				CColor=rgbToHex(c[0],c[1],c[2]);
+				Pcontext.fillStyle=CColor;
+				Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+			}
+		}
+	});
+	Pickertwo.addEventListener('mouseleave', PMLT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			PickDown=false;
+			if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+			}
+			else if (x>Pcontext.canvas.width-60){
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}
+			else{
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}}});
+	Pickertwo.addEventListener('mouseup', PMUT=function(evt) {
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		PickDown=false;
+		if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+		}
+		else if (x>Pcontext.canvas.width-60){
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}
+		else{
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}});
+
+}
+
+
+function OpenSelNodeColorPicker(NODEIDLIST){
+
+	ColorPickerTwo.style.visibility='visible';
+	CColor='black';
+	Pcontext=Pickertwo.getContext('2d');
+	Pickertwo.width=350;
+	Pickertwo.height=200;
+	Pcontext.fillStyle=rgbToHex(25,25,25);
+	Pcontext.fillRect(0,0,Pcontext.canvas.width,Pcontext.canvas.height);
+	//Thanks to http://seesparkbox.com/foundry/how_i_built_a_canvas_color_picker
+	var gradient = Pcontext.createLinearGradient(5,5,Pickertwo.width-80,5);
+	gradient.addColorStop(0,    "rgb(255,   0,   0)");
+	gradient.addColorStop(0.15, "rgb(255,   0, 255)");
+	gradient.addColorStop(0.33, "rgb(0,     0, 255)");
+	gradient.addColorStop(0.49, "rgb(0,   255, 255)");
+	gradient.addColorStop(0.67, "rgb(0,   255,   0)");
+	gradient.addColorStop(0.84, "rgb(255, 255,   0)");
+	gradient.addColorStop(1,    "rgb(255,   0,   0)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient = Pcontext.createLinearGradient(0, 5, 0, Pcontext.canvas.height-10);
+	gradient.addColorStop(0,   "rgba(255, 255, 255, 1)");
+	gradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
+	gradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
+	gradient.addColorStop(1,   "rgba(0,     0,   0, 1)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	Pcontext.fillStyle=rgbToHex(210,210,210);
+	Pcontext.fillRect(Pcontext.canvas.width-50,Pcontext.canvas.height-30,40,20);
+	Pcontext.fillStyle=rgbToHex(0,0,0);
+	Pcontext.font="8px sans-serif";
+	Pcontext.fillText('Confirm',Pcontext.canvas.width-50+5,Pcontext.canvas.height-30+10);
+	Pcontext.fillStyle=CColor;
+	Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient.addColorStop(0,    "rgb(0,   0,   0)");
+	gradient.addColorStop(.5,   CColor);
+	gradient.addColorStop(1,    "rgb(255,   255,   255)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+	PickDown=false;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	Pickertwo.addEventListener('mousedown', PMDT=function(evt) {
+		PickDown=true;
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+			var c = Pcontext.getImageData(x, y, 1, 1).data;
+			CColor=rgbToHex(c[0],c[1],c[2]);
+			Pcontext.fillStyle=CColor;
+			Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+		}
+		if((x>Pcontext.canvas.width-50)&&(x<Pcontext.canvas.width-50+40)&&(y>Pcontext.canvas.height-30)&&(y<Pcontext.canvas.height-30+20)){
+			CloseSelectPicker(NODEIDLIST,CColor);
+		}
+	});
+	Pickertwo.addEventListener('mousemove', PMMT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+				var c = Pcontext.getImageData(x, y, 1, 1).data;
+				CColor=rgbToHex(c[0],c[1],c[2]);
+				Pcontext.fillStyle=CColor;
+				Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+			}
+		}
+	});
+	Pickertwo.addEventListener('mouseleave', PMLT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			PickDown=false;
+			if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+			}
+			else if (x>Pcontext.canvas.width-60){
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}
+			else{
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}}});
+	Pickertwo.addEventListener('mouseup', PMUT=function(evt) {
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		PickDown=false;
+		if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+		}
+		else if (x>Pcontext.canvas.width-60){
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}
+		else{
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}});
+}
+
+
+
+function ChangeColor(Something){
+	//console.log(Something);
+	ColorPickerTwo.style.visibility='visible';
+	CColor=CompColor[Something.id.split('Comp_')[1]];
+	Pcontext=Pickertwo.getContext('2d');
+	Pickertwo.width=350;
+	Pickertwo.height=200;
+	Pcontext.fillStyle=rgbToHex(25,25,25);
+	Pcontext.fillRect(0,0,Pcontext.canvas.width,Pcontext.canvas.height);
+	//Thanks to http://seesparkbox.com/foundry/how_i_built_a_canvas_color_picker
+	var gradient = Pcontext.createLinearGradient(5,5,Pickertwo.width-80,5);
+	gradient.addColorStop(0,    "rgb(255,   0,   0)");
+	gradient.addColorStop(0.15, "rgb(255,   0, 255)");
+	gradient.addColorStop(0.33, "rgb(0,     0, 255)");
+	gradient.addColorStop(0.49, "rgb(0,   255, 255)");
+	gradient.addColorStop(0.67, "rgb(0,   255,   0)");
+	gradient.addColorStop(0.84, "rgb(255, 255,   0)");
+	gradient.addColorStop(1,    "rgb(255,   0,   0)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient = Pcontext.createLinearGradient(0, 5, 0, Pcontext.canvas.height-10);
+	gradient.addColorStop(0,   "rgba(255, 255, 255, 1)");
+	gradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
+	gradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
+	gradient.addColorStop(1,   "rgba(0,     0,   0, 1)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(5,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	Pcontext.fillStyle=rgbToHex(210,210,210);
+	Pcontext.fillRect(Pcontext.canvas.width-50,Pcontext.canvas.height-30,40,20);
+	Pcontext.fillStyle=rgbToHex(0,0,0);
+	Pcontext.font="8px sans-serif";
+	Pcontext.fillText('Confirm',Pcontext.canvas.width-50+5,Pcontext.canvas.height-30+10);
+	Pcontext.fillStyle=CColor;
+	Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+	gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+	gradient.addColorStop(0,    "rgb(0,   0,   0)");
+	gradient.addColorStop(.5,   CColor);
+	gradient.addColorStop(1,    "rgb(255,   255,   255)");
+	Pcontext.fillStyle=gradient;
+	Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+	PickDown=false;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+	Pickertwo.addEventListener('mousedown', PMDT=function(evt) {
+		PickDown=true;
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+			var c = Pcontext.getImageData(x, y, 1, 1).data;
+			CColor=rgbToHex(c[0],c[1],c[2]);
+			Pcontext.fillStyle=CColor;
+			Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+		}
+		if((x>Pcontext.canvas.width-50)&&(x<Pcontext.canvas.width-50+40)&&(y>Pcontext.canvas.height-30)&&(y<Pcontext.canvas.height-30+20)){
+			ClosePickerTwo(Something,CColor);
+		}
+	});
+	Pickertwo.addEventListener('mousemove', PMMT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			if((x>5)&&(x<Pcontext.canvas.width-60)&&(y>5)&&(y<Pcontext.canvas.height-10)){
+				var c = Pcontext.getImageData(x, y, 1, 1).data;
+				CColor=rgbToHex(c[0],c[1],c[2]);
+				Pcontext.fillStyle=CColor;
+				Pcontext.fillRect(Pcontext.canvas.width-50,30,40,20);
+			}
+		}
+	});
+	Pickertwo.addEventListener('mouseleave', PMLT=function(evt) {
+		if(PickDown==true){
+			var rect = Pickertwo.getBoundingClientRect();
+			var x = evt.clientX - rect.left;
+			var y = evt.clientY - rect.top;
+			PickDown=false;
+			if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+			}
+			else if (x>Pcontext.canvas.width-60){
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}
+			else{
+				gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+				var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+				
+				gradient.addColorStop(0,    "rgb(0,   0,   0)");
+				gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+				gradient.addColorStop(1,    "rgb(255,   255,   255)");
+				Pcontext.fillStyle=gradient;
+				Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+			}}});
+	Pickertwo.addEventListener('mouseup', PMUT=function(evt) {
+		var rect = Pickertwo.getBoundingClientRect();
+		var x = evt.clientX - rect.left;
+		var y = evt.clientY - rect.top;
+		PickDown=false;
+		if(x>Pcontext.canvas.width-80 && x<Pcontext.canvas.width-60){
+		}
+		else if (x>Pcontext.canvas.width-60){
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}
+		else{
+			gradient = Pcontext.createLinearGradient(Pcontext.canvas.width-80,5,Pcontext.canvas.width-80,Pcontext.canvas.height-10);
+			var c = Pcontext.getImageData(x, Pcontext.canvas.height/2, 1, 1).data;
+			
+			gradient.addColorStop(0,    "rgb(0,   0,   0)");
+			gradient.addColorStop(.5,    rgbToHex(c[0],c[1],c[2]));
+			gradient.addColorStop(1,    "rgb(255,   255,   255)");
+			Pcontext.fillStyle=gradient;
+			Pcontext.fillRect(Pcontext.canvas.width-80,5,20,Pcontext.canvas.height-10);
+		}});
+}
+
+function   ClosePickerTwo(Something,CColor){
+	CompColor[Something.id.split('Comp_')[1]]=CColor;
+	Something.setAttribute('style','background-color:'+CompColor[Something.id.split('Comp_')[1]]+';');
+	ColorPickerTwo.style.visibility='hidden';
+	Pickertwo.width=0;
+	Pickertwo.height=0;
+	if(typeof PMDT !== 'undefined'){
+		Pickertwo.removeEventListener('mousedown', PMDT);
+		Pickertwo.removeEventListener('mousemove', PMMT);
+		Pickertwo.removeEventListener('mouseleave', PMLT);
+		Pickertwo.removeEventListener('mouseup', PMUT);
+	}
+}
+</script>
+
+
+
+</body>
+</html>

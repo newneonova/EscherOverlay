@@ -1,0 +1,9 @@
+,Strain,Timepoint,,,,,
+PT3ID,,,311550,306012,311846,307814,312000
+DisplayName,,,Phatrdraft3_XXXXX,Phatrdraft3_YYYYY,My Special Name,Another One,
+,WT,DAWN,0,3,0,0.2,4
+,a8,DAWN,0.5,2,-1,0.3,3
+,b6,DAWN,0.1,3,-1,0.4,4.2
+,WT,DUSK,0,3,2,1.9,2
+,a8,DUSK,-0.7,-4,2,2.1,-1
+,b6,DUSK,-1.2,-1.5,2,2.7,-2
